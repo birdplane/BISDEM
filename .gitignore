@@ -80,6 +80,7 @@ nosetests.xml
 .DS_Store?
 .Spotlight-V100
 .Trashes
+_*
 Icon?
 ehthumbs.db
 
