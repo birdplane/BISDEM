@@ -10,8 +10,8 @@ class example(Component):
     """
     """
     # declare inputs and outputs here, for example:
-    #x = Float(0.0, iotype='in', desc='description for x')
-    #y = Float(0.0, iotype='out', desc='description for y')
+    x = Float(0.0, iotype='in', desc='description for x')
+    y = Float(0.0, iotype='out', desc='description for y')
 
     def execute(self):
         """ do your calculations here """

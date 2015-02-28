@@ -1,0 +1,17 @@
+git checkout gh-pages
+rm -f !(*.gitignore|*.nojekyll)
+rm -rf _static _sources _modules src docs .doctrees
+git add -A
+git commit -m 'clean gh-pages'
+git checkout master
+git reset HEAD
+cd docs/
+make html
+mv -fv _build/html/* ../
+rm -rf _build
+cd ..
+git checkout gh-pages
+rm -rf src docs
+git add -A
+git commit -m "Generated gh-pages for `git log master -1 --pretty=short --abbrev-commit`" && git push origin gh-pages ; git checkout master
+	
