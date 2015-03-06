@@ -1,6 +1,6 @@
-# WingSE
+#  BISDEM
 
-WingSE is an under development Systems Engineering model of a flapping wing UAV used for the design and optimization of BirdPlane. The model is built in the OpenMDAO framework.
+BISDEM (BirdPlane Integrated System Design and Engineering Model) is an under development Systems Engineering model of a flapping wing UAV used for the design and optimization of BirdPlane. The model is built in the OpenMDAO framework.
 
 ## Detailed Documentation
 
