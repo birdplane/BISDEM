@@ -234,7 +234,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'bisdem', u'BISDEM Documentation',
+    ('index', 'BISDEM', u'BISDEM Documentation',
      [u'BirdPlane'], 1)
 ]
 
@@ -248,8 +248,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'WingSE', u'WingSE Documentation',
-   u'BirdPlane', 'WingSE', 'One line description of project.',
+  ('index', 'BISDEM', u'BISDEM Documentation',
+   u'BirdPlane', 'BISDEM', 'One line description of project.',
    'Miscellaneous'),
 ]
 
