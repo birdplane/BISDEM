@@ -6,10 +6,9 @@ from string import digits
 from openmdao.main.api import Component, Assembly
 from openmdao.lib.datatypes.api import VarTree, Float, Array, Bool, Str, List, Int
 
-from fusedwind.turbine.geometry_vt import BladeSurfaceVT, BladePlanformVT
+from fusedwind.turbine.geometry_vt import BladeSurfaceVT
 from fusedwind.turbine.geometry import RedistributedBladePlanform, SplineComponentBase, FFDSplineComponentBase
 from fusedwind.turbine.structure_vt import BladeStructureVT3D, CrossSectionStructureVT, BeamStructureVT
-from fusedwind.turbine.rotoraero_vt import LoadVectorCaseList
 from fusedwind.interface import base, implement_base
 
 
@@ -184,9 +183,6 @@ class BladeStructureReader(Component):
 
                 s = cldata[:, 0]
                 r.thickness = np.zeros(self.st3d.x.shape[0])
-                DP0 = getattr(self.st3d, 'DP%02d' % i)
-                DP1 = getattr(self.st3d, 'DP%02d' % (i + 1))
-                r.width =  DP1 - DP0
                 for il, lname in enumerate(layers):
                     self._logger.info('    adding layer %s' % lname)
                     l = r.add_layer(lname)
@@ -212,7 +208,6 @@ class BladeStructureReader(Component):
                 nl = len(lheader)
 
                 r.thickness = np.zeros(self.st3d.x.shape[0])
-                r.width = np.zeros(self.st3d.x.shape[0])
                 # assert len(lheader) == cldata.shape[1]
 
                 s = cldata[:, 0]
@@ -246,6 +241,7 @@ class BladeStructureWriter(Component):
                 self.fbase = self.filebase + '_' + str(self.exec_count)
         except:
             self.fbase = self.filebase
+        self.fbase = self.filebase
 
         self.write_layup_data()
         self.write_materials()
@@ -373,14 +369,7 @@ class BladeStructureWriter(Component):
 @base
 class BeamStructureReaderBase(Component):
 
-    beam_structure = VarTree(BeamStructureVT(), iotype='out')
-
-
-@base
-class BeamStructureWriterBase(Component):
-
-    beam_structure = VarTree(BeamStructureVT(), iotype='in')
-
+    beamprops = VarTree(BeamStructureVT(), iotype='out')
 
 
 @implement_base(BeamStructureReaderBase)
@@ -389,8 +378,8 @@ class BeamStructureReader(Component):
     Default reader for a beam structure file.
     """
 
-    filename = Str(iotype='in')
-    beam_structure = VarTree(BeamStructureVT(), iotype='out')
+    st_filename = Str(iotype='in')
+    beamprops = VarTree(BeamStructureVT(), iotype='out')
 
     def execute(self):
         """  
@@ -401,83 +390,34 @@ class BeamStructureReader(Component):
         Sub-classes can overwrite this function to change the reader's behaviour.
         """
         print 'reading blade structure'
-        if self.filename is not '':
+        if self.st_filename is not '':
             try: 
-                st_data = np.loadtxt(self.filename)
+                st_data = np.loadtxt(self.st_filename)
             except:
                 raise RuntimeError('Error reading file %s, %s'% (self.st_filename))
 
         if st_data.shape[1] < 19:
-            raise RuntimeError('Blade planform data: expected dim = 19, got dim = %i,%s'%(st_data.shape[1]))
+            raise RuntimeError('Blade planform data: expected dim = 10, got dim = %i,%s'%(st_data.shape[1]))
 
-        self.beam_structure.s = st_data[:, 0]
-        self.beam_structure.dm = st_data[:, 1]
-        self.beam_structure.x_cg = st_data[:, 2]
-        self.beam_structure.y_cg = st_data[:, 3]
-        self.beam_structure.ri_x = st_data[:, 4]
-        self.beam_structure.ri_y = st_data[:, 5]
-        self.beam_structure.x_sh = st_data[:, 6]
-        self.beam_structure.y_sh = st_data[:, 7]
-        self.beam_structure.E = st_data[:, 8]
-        self.beam_structure.G = st_data[:, 9]
-        self.beam_structure.I_x = st_data[:, 10]
-        self.beam_structure.I_y = st_data[:, 11]
-        self.beam_structure.J = st_data[:, 12]
-        self.beam_structure.k_x = st_data[:, 13]
-        self.beam_structure.k_y = st_data[:, 14]
-        self.beam_structure.A = st_data[:, 15]
-        self.beam_structure.pitch = st_data[:, 16]
-        self.beam_structure.x_e = st_data[:, 17]
-        self.beam_structure.y_e = st_data[:, 18]
-
-
-@implement_base(BeamStructureWriterBase)
-class BeamStructureWriter(Component):
-    """
-    Default writer for a beam structure file.
-    """
-
-    filename = Str(iotype='in')
-    beam_structure = VarTree(BeamStructureVT(), iotype='in',
-                                         desc='Vartree containing beam definition of blade structure')
-
-
-    def execute(self):
-
-        fid = open(self.filename, 'w')
-
-        # generate header
-        header = ['r', 'm', 'x_cg', 'y_cg', 'ri_x', 'ri_y', 'x_sh', 'y_sh', 'E',
-                  'G', 'I_x', 'I_y', 'J', 'k_x', 'k_y', 'A', 'pitch', 'x_e', 'y_e']
-        exp_prec = 10             # exponential precesion
-        col_width = exp_prec + 8  # column width required for exp precision
-        header_full = '# ' + ''.join([(hh + ' [%i]').center(col_width+1)%i for i, hh in enumerate(header)])+'\n'
-
-        fid.write(header_full)
-
-        # convert to array
-        st = self.beam_structure
-        data = np.array([st.s,
-                         st.dm,
-                         st.x_cg,
-                         st.y_cg,
-                         st.ri_x,
-                         st.ri_y,
-                         st.x_sh,
-                         st.y_sh,
-                         st.E,
-                         st.G,
-                         st.I_x,
-                         st.I_y,
-                         st.J,
-                         st.k_x,
-                         st.k_y,
-                         st.A,
-                         st.pitch,
-                         st.x_e,
-                         st.y_e]).T
-        np.savetxt(fid, data, fmt='%'+' %i.%ie' % (col_width, exp_prec) )
-        fid.close()
+        self.beamprops.s = st_data[:, 0]
+        self.beamprops.dm = st_data[:, 1]
+        self.beamprops.x_cg = st_data[:, 2]
+        self.beamprops.y_cg = st_data[:, 3]
+        self.beamprops.ri_x = st_data[:, 4]
+        self.beamprops.ri_y = st_data[:, 5]
+        self.beamprops.x_sh = st_data[:, 6]
+        self.beamprops.y_sh = st_data[:, 7]
+        self.beamprops.E = st_data[:, 8]
+        self.beamprops.G = st_data[:, 9]
+        self.beamprops.I_x = st_data[:, 10]
+        self.beamprops.I_y = st_data[:, 11]
+        self.beamprops.J = st_data[:, 12]
+        self.beamprops.k_x = st_data[:, 13]
+        self.beamprops.k_y = st_data[:, 14]
+        self.beamprops.A = st_data[:, 15]
+        self.beamprops.pitch = st_data[:, 16]
+        self.beamprops.x_e = st_data[:, 17]
+        self.beamprops.y_e = st_data[:, 18]
 
 
 @implement_base(ModifyBladeStructureBase)
@@ -518,10 +458,10 @@ class SplinedBladeStructure(Assembly):
         self.add('pf', RedistributedBladePlanform())
         self.driver.workflow.add('pf')
         self.create_passthrough('pf.pfIn')
-        self.create_passthrough('pf.pfOut')
+        self.create_passthrough('pf.pfOut.blade_length')
         self.connect('x', 'pf.x')
 
-    def configure_bladestructure(self, spline_type='pchip'):
+    def configure_bladestructure(self):
         """
         method for trawling through the st3dIn vartree
         and initializing all spline curves in the assembly
@@ -547,7 +487,6 @@ class SplinedBladeStructure(Assembly):
             DPc = self.add(dpname, FFDSplineComponentBase(self.nC))
             self.driver.workflow.add(dpname)
             # DPc.log_level = logging.DEBUG
-            DPc.set_spline(spline_type)
             x = getattr(sec, 'x')
             DP = getattr(sec, dpname)
             self.connect('x', '%s.x' % dpname)
@@ -567,7 +506,6 @@ class SplinedBladeStructure(Assembly):
                     lcomp = self.add(lcname+'T', FFDSplineComponentBase(self.nC))
                     self.driver.workflow.add(lcname+'T')
                     # lcomp.log_level = logging.DEBUG
-                    lcomp.set_spline(spline_type)
                     self.connect('x', '%s.x' % (lcname + 'T'))
                     lcomp.xinit = sec.x
                     lcomp.Pinit = layer.thickness
@@ -577,7 +515,6 @@ class SplinedBladeStructure(Assembly):
                     lcomp = self.add(lcname+'A', FFDSplineComponentBase(self.nC))
                     self.driver.workflow.add(lcname+'A')
                     # lcomp.log_level = logging.DEBUG
-                    lcomp.set_spline(spline_type)
                     self.connect('x', '%s.x' % (lcname + 'A'))
                     self.create_passthrough(lcname+'T' + '.C', alias=lcname+'T' + '_C')
                     lcomp.xinit = sec.x
@@ -595,7 +532,6 @@ class SplinedBladeStructure(Assembly):
                 lcomp = self.add(lcname+'T', FFDSplineComponentBase(self.nC))
                 # lcomp.log_level = logging.DEBUG
                 self.driver.workflow.add(lcname+'T')
-                lcomp.set_spline(spline_type)
                 self.connect('x', '%s.x' % (lcname + 'T'))
                 lcomp.xinit = sec.x
                 lcomp.Pinit = layer.thickness
@@ -606,7 +542,6 @@ class SplinedBladeStructure(Assembly):
                 lcomp = self.add(lcname+'A', FFDSplineComponentBase(self.nC))
                 # lcomp.log_level = logging.DEBUG
                 self.driver.workflow.add(lcname+'A')
-                lcomp.set_spline(spline_type)
                 self.connect('x', '%s.x' % (lcname + 'A'))
                 lcomp.xinit = sec.x
                 lcomp.Pinit = layer.angle
@@ -638,7 +573,7 @@ class SplinedBladeStructure(Assembly):
                     width[ix] *= -1.
                     self._logger.warning('switching DPs %i %i for section %i' %
                                          (i, i + 1, ix))
-            region.width = width * self.pf.pfOut.chord * self.pfOut.blade_length
+            region.width = width * self.pf.pfOut.chord * self.blade_length
             region.thickness = np.zeros(self.st3dOut.x.shape)
             for layer in region.layers:
                 region.thickness += np.maximum(0., getattr(region, layer).thickness)
@@ -781,43 +716,3 @@ class BladeStructureCSBuilder(BladeStructureBuilderBase):
                             l.angle = 0.
 
             self.cs2d.append(st2d)
-
-
-@base
-class BeamStructureCSCode(Component):
-    """
-    Base class for computing beam structural properties using a cross-sectional
-    code such as PreComp, BECAS or VABS.
-
-    The analysis assumes that the list of CrossSectionStructureVT's and the
-    BladePlanformVT are interpolated onto the structural grid, and that
-    the code itself is responsible for the meshing of the cross sections.
-    """
-
-    cs2d = List(CrossSectionStructureVT, iotype='in', desc='Blade cross sectional structure geometry')
-    pf = VarTree(BladePlanformVT(), iotype='in', desc='Blade planform discretized according to'
-                                                      'the structural resolution')
-
-    beam_structure = VarTree(BeamStructureVT(), iotype='out', desc='Structural beam properties')
-
-
-@base
-class StressRecoveryCSCode(Component):
-    """
-    Base class for performing cross sectional failure analysis
-    using codes like BECAS and VABS.
-
-    This analysis will typically be in a workflow preceeded by
-    a call to a BeamStructureCSCode. It is assumed that the list of
-    LoadVectorCaseList vartrees are interpolated onto the structural grid.
-
-    Note that the failure criterium and material safety factors are specified
-    for each individual material in the MaterialProps variable tree.
-    """
-
-    load_cases = List(LoadVectorCaseList, iotype='in', 
-                           desc='List of lists of section load vectors for each radial section'
-                                'used to perform failure analysis')
-
-    failure = Array(iotype='out', desc='Failure parameter. Shape: ((len(load_cases), n_radial_sections))')
-

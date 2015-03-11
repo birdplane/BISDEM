@@ -6,10 +6,8 @@ from openmdao.main.api import Component, Assembly
 from openmdao.lib.datatypes.api import Instance, Array, VarTree, Enum, Int, List, Str, Float, Bool
 
 from fusedwind.lib.distfunc import distfunc
-from fusedwind.lib.cubicspline import NaturalCubicSpline
 from fusedwind.lib.geom_tools import RotMat, dotXC, calculate_length, curvature
-from fusedwind.lib.bezier import BezierCurve
-from fusedwind.turbine.geometry_vt import Curve, BladePlanformVT, BladeSurfaceVT, BlendAirfoilShapes, AirfoilShape
+from fusedwind.turbine.geometry_vt import Curve, BladePlanformVT, BladeSurfaceVT, BlendAirfoilShapes
 from fusedwind.interface import base, implement_base
 
 
@@ -81,7 +79,7 @@ class pchipSpline(SplineBase):
         xp: array
             array with x-coordinates of spline control points
         yp: array
-            array with y-coordinates of spline control points
+            array with y-coordinates of splinecontrol points
 
         returns
         ---------
@@ -93,52 +91,7 @@ class pchipSpline(SplineBase):
         return spl(x)
 
 
-class BezierSpline(SplineBase):
-
-    def initialize(self, x, xp, yp):
-        """
-        params:
-        ----------
-        x: array
-            array with new x-distribution
-        xp: array
-            array with original x-distribution
-        yp: array
-            array with original y-distribution
-
-        returns
-        ---------
-        ynew: array
-            resampled points
-        """
-        self.B = BezierCurve()
-        self.B.CPs = np.array([xp, yp]).T
-        return self.__call__(x, xp, yp)
-
-    def __call__(self, x, Cx, C):
-        """
-        params:
-        ----------
-        x: array
-            array with new x-distribution
-        xp: array
-            array with x-coordinates of spline control points
-        yp: array
-            array with y-coordinates of spline control points
-
-        returns
-        ---------
-        ynew: array
-            resampled points
-        """
-        self.B.CPs = np.array([Cx, C]).T
-        self.B.update()
-        spl = NaturalCubicSpline(self.B.points[:, 0], self.B.points[:, 1])
-        return spl(x)
-
-
-spline_dict = {'pchip': pchipSpline,
-               'bezier': BezierSpline}
+spline_dict = {'pchip': pchipSpline}
 
 
 @base
@@ -248,7 +201,7 @@ class FFDSplineComponentBase(Component):
         self.base_spline = spline_dict[self.base_spline_type]()
         self.set_spline(self.spline_type)
         self.Pbase = self.base_spline(self.x, self.xinit, self.Pinit)
-        self.spline.initialize(self.x, self.Cx, self.C)
+        # self.spline(self.x, np.zeros(self.x.shape[0]), Cx=self.Cx)
 
     def execute(self):
         """
@@ -261,7 +214,7 @@ class FFDSplineComponentBase(Component):
             self.initialize()
 
         self.P = self.Pbase + self.spline(self.x, self.Cx, self.C)
-        self.dPds = curvature(np.array([self.x, self.P]).T)
+        self.dTds = curvature(np.array([self.x, self.P]).T)
 
 
 @base
@@ -287,7 +240,7 @@ class RedistributedBladePlanform(Component):
 
     def execute(self):
 
-        self.pfOut.blade_length = self.pfIn.blade_length
+        self.pfOut.s = self.x.copy()
         self.pfIn._compute_s()
         for name in self.pfIn.list_vars():
             var = getattr(self.pfIn, name)
@@ -295,7 +248,7 @@ class RedistributedBladePlanform(Component):
             tck = pchip(self.pfIn.s, var)
             newvar = tck(self.x) 
             setattr(self.pfOut, name, newvar)
-        self.pfOut._compute_s()
+
 
 def redistribute_blade_planform(pfIn, x):
 
@@ -320,7 +273,6 @@ def read_blade_planform(filename):
     pf = BladePlanformVT()
     pf.blade_length = data[-1, 2]
     pf.s = s / s[-1]
-    pf.smax = s[-1]
     pf.x = data[:, 0] / data[-1, 2]
     pf.y = data[:, 1] / data[-1, 2]
     pf.z = data[:, 2] / data[-1, 2]
@@ -335,115 +287,14 @@ def read_blade_planform(filename):
 
     return pf
 
-
-@base
-class BladePlanformWriter(Component):
-
-    filebase = Str('blade')
-    pf = VarTree(BladePlanformVT(), iotype='in')
-
-    def execute(self):
-
-        name = self.filebase + self.itername + '.pfd'
-
-        try:
-            if '-fd' in self.itername or '-fd' in self.parent.itername:
-               name = self.filebase + '.pfd'
-        except:
-            pass
-
-        data = np.array([self.pf.x,
-                         self.pf.y,
-                         self.pf.z,
-                         self.pf.rot_x,
-                         self.pf.rot_y,
-                         self.pf.rot_z,
-                         self.pf.chord,
-                         self.pf.rthick,
-                         self.pf.p_le]).T
-        fid = open(name, 'w')
-        header = ['main_axis_x',  'main_axis_y', 'main_axis_z', 'rot_x', 'rot_y', 'rot_z', 'chord', 'rthick', 'p_le']
-
-        exp_prec = 10             # exponential precesion
-        col_width = exp_prec + 8  # column width required for exp precision
-        header_full = '# ' + ''.join([(hh + ' [%i]').center(col_width + 2)%i for i, hh in enumerate(header)])+'\n'
-
-        fid.write(header_full)
-        np.savetxt(fid, data, fmt='%'+' %i.%ie' % (col_width, exp_prec))
-        fid.close()
-
-class ComputeDist(Component):
-    """
-    simple redistribution function that clusters cells towards one end
-    """
-
-    span_ni = Int(iotype='in')
-    x_dist = Array(iotype='in')
-    x = Array(iotype='out')
-
-    def execute(self):
-
-        if self.x_dist.shape[0] > 0:
-            self.x = self.x_dist
-        else:
-            self.x = distfunc([[0., -1, 1], [1., 0.2 * 1./self.span_ni, self.span_ni]])
-
-
-class ScaleChord(Component):
-    """
-    component to replace
-    connect(sname + '.P'+
-        '*blade_length/blade_length_ref', 'pfOut.' + vname)
-    """
-
-    scaler = Float(iotype='in')
-    cIn = Array(iotype='in')
-    cOut = Array(iotype='out')
-
-    def execute(self):
-
-        self.cOut = self.scaler * self.cIn
-
-
-class ComputeAthick(Component):
-    """
-    component to replace connection:
-    connect('chord.P*rthick.P', 'pfOut.athick')
-    """
-    
-    chord = Array(iotype='in')
-    rthick = Array(iotype='in')
-    athick = Array(iotype='out')
-
-    def execute(self):
-
-        self.athick = self.chord * self.rthick
-
-
-class ComputeSmax(Component):
-
-    x = Array(iotype='in')
-    y = Array(iotype='in')
-    z = Array(iotype='in')
-    smax = Float(iotype='in')
-
-    def execute(self):
-
-        s = calculate_length(np.array([self.x,
-                                       self.y,
-                                       self.z]).T)
-        self.smax = s[-1]
-
-
 @implement_base(ModifyBladePlanformBase)
 class SplinedBladePlanform(Assembly):
 
-
+    x_dist = Array(iotype='in', desc='spanwise resolution of blade')
     nC = Int(8, iotype='in', desc='Number of spline control points along span')
     Cx = Array(iotype='in', desc='spanwise distribution of spline control points')
 
-    blade_length = Float(1., iotype='in')
-    blade_length_ref = Float(iotype='in')
+    blade_length = Float(iotype='in')
 
     span_ni = Int(50, iotype='in')
 
@@ -455,12 +306,6 @@ class SplinedBladePlanform(Assembly):
         
         self.blade_length_ref = 0.
 
-        self.add('compute_x', ComputeDist())
-        self.driver.workflow.add('compute_x')
-        self.connect('span_ni', 'compute_x.span_ni')
-        self.connect('compute_x.x', 'pfOut.s')
-        self.create_passthrough('compute_x.x_dist')
-
     def _pre_execute(self):
         super(SplinedBladePlanform, self)._pre_execute()
 
@@ -468,7 +313,14 @@ class SplinedBladePlanform(Assembly):
         if self.blade_length_ref == 0.:
             self.blade_length_ref = self.blade_length
 
-    def configure_splines(self, spline_type='pchip'):
+        self.configure_splines()
+
+    def compute_x(self):
+
+        # simple distfunc for now
+        self.x_dist = distfunc([[0., -1, 1], [1., 0.2 * 1./self.span_ni, self.span_ni]])
+
+    def configure_splines(self):
 
 
         if hasattr(self, 'chord_C'):
@@ -478,51 +330,37 @@ class SplinedBladePlanform(Assembly):
         else:
             self.nC = self.Cx.shape[0]
 
-
-        self.connect('blade_length', 'pfOut.blade_length')
-
-
-
+        self.compute_x()
+        self.pfOut = self.pfIn.copy()
         for vname in self.pfIn.list_vars():
-            if vname in ['s', 'smax', 'athick', 'blade_length']:
+            if vname in ['athick', 'blade_length']:
                 continue
 
             cIn = self.get('pfIn.' + vname)
             cOut = self.get('pfOut.' + vname)
             sname = vname.replace('.','_')
-                
-            spl = self.add(sname, FFDSplineComponentBase(self.nC))
-            self.driver.workflow.add(sname)
-            # spl.log_level = logging.DEBUG
-            spl.set_spline(spline_type)
-            self.connect('compute_x.x', sname + '.x')
-            self.connect('Cx', sname + '.Cx')
-            spl.xinit = self.get('pfIn.s')
-            spl.Pinit = cIn
-            if vname == 'chord':
-                self.add('scaleC', ScaleChord())
-                self.driver.workflow.add('scaleC')
-                self.connect('chord.P', 'scaleC.cIn')
-                self.connect('blade_length/blade_length_ref', 'scaleC.scaler')
-                self.connect('scaleC.cOut', 'pfOut.chord')
-                # self.connect(sname + '.P'+
-                #     '*blade_length/blade_length_ref', 'pfOut.' + vname)
-            else:
-                self.connect(sname + '.P', 'pfOut.' + vname)
-            self.create_passthrough(sname + '.C', alias=sname + '_C')
-            self.create_passthrough(sname + '.dPds', alias=sname + '_dPds')
 
-        self.add('athick', ComputeAthick())
-        self.driver.workflow.add('athick')
-        self.connect('chord.P', 'athick.chord')
-        self.connect('rthick.P', 'athick.rthick')
-        self.connect('athick.athick', 'pfOut.athick')
-        self.add('smax', ComputeSmax())
-        self.driver.workflow.add('smax')
-        self.connect('x.P', 'smax.x')
-        self.connect('y.P', 'smax.y')
-        self.connect('z.P', 'smax.z')
-        self.connect('smax.smax', 'pfOut.smax')
+            if vname == 's':
+                self.connect('x_dist', 'pfOut.s')
+            else:
+                spl = self.add(sname, FFDSplineComponentBase(self.nC))
+                self.driver.workflow.add(sname)
+                # spl.log_level = logging.DEBUG
+                self.connect('x_dist', sname + '.x')
+                self.connect('Cx', sname + '.Cx')
+                spl.xinit = self.get('pfIn.s')
+                spl.Pinit = cIn
+                self.connect(sname + '.P', 'pfOut.' + vname)
+                self.create_passthrough(sname + '.C', alias=sname + '_C')
+                self.create_passthrough(sname + '.dPds', alias=sname + '_dPds')
+
+
+    def _post_execute(self):
+        super(SplinedBladePlanform, self)._post_execute()
+
+        self.pfOut.chord *= self.blade_length / self.blade_length_ref
+        self.pfOut.athick = self.pfOut.chord * self.pfOut.rthick
+
 
 @base
 class LoftedBladeSurfaceBase(Component):
@@ -539,8 +377,6 @@ class LoftedBladeSurface(Component):
     blend_var = Array(iotype='in')
     chord_ni = Int(300, iotype='in')
     span_ni = Int(300, iotype='in')
-    redistribute_flag = Bool(False, desc='redistribute points chordwise')
-    x_chordwise = Array(iotype='in', desc='user specified chordwise distribution')
 
     interp_type = Enum('rthick', ('rthick', 's'), iotype='in')
     surface_spline = Str('akima', iotype='in', desc='Spline')
@@ -579,19 +415,14 @@ class LoftedBladeSurface(Component):
             else:
                 points = self.interpolator(s)
 
-            points = self.redistribute(points, pos_z)
-
             points *= chord
-            points[:, 0] -= chord * p_le
+            points[:, 0] += pos_x - chord * p_le
 
             # x-coordinate needs to be inverted for clockwise rotating blades
             x[:, i, :] = (np.array([-points[:,0], points[:,1], x.shape[0] * [pos_z]]).T)
 
-        # save blade without sweep and prebend
+        # save non-rotated blade (only really applicable for straight blades)
         x_norm = x.copy()
-
-        # add translation and rotation
-        x[:, :, 0] += self.pf.x
         x[:, :, 1] += self.pf.y
         x = self.rotate(x)
 
@@ -649,39 +480,3 @@ class LoftedBladeSurface(Component):
             x_rot[:, i, :] = dotXC(rotation_matrix, points, rot_center)
 
         return x_rot
-
-    def redistribute(self, points, pos_z):
-
-        if self.redistribute_flag == False:
-            return points
-
-        airfoil = AirfoilShape(points=points)
-        try:
-            dist_LE = np.interp(pos_z, self.dist_LE[:, 0], self.dist_LE[:, 1])
-        except:
-            dist_LE = None
-        # pass airfoil to user defined routine to allow for additional configuration
-        airfoil = self.set_airfoil(airfoil, pos_z)
-        if self.x_chordwise.shape[0] > 0:
-            airfoil = airfoil.redistribute_chordwise(self.x_chordwise)
-        else:
-            airfoil = airfoil.redistribute(ni=self.chord_ni, dLE=dist_LE)
-
-        return airfoil.points
-
-    def set_airfoil(self, airfoil, pos_z):
-
-        if hasattr(self, 'gf_height'):
-            height = self.gf_height(pos_z)
-            length_factor = self.gf_length_factor(pos_z)
-            print 'gf', pos_z, height, length_factor
-            if height > 0.:
-                airfoil = airfoil.gurneyflap(height, length_factor)
-
-        return airfoil
-
-    def add_gurney_flap(self, s, gf_heights, gf_length_factor):
-        """spline the gurney flap height and length factor curves"""
-
-        self.gf_height = pchip(s, gf_heights)
-        self.gf_length_factor = pchip(s, gf_length_factor)

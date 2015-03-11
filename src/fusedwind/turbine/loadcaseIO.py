@@ -1,5 +1,6 @@
 
 import numpy as np
+import ipdb
 from openmdao.main.api import Component
 from openmdao.lib.datatypes.api import List, Array, VarTree, Float, Str
 
@@ -26,7 +27,6 @@ class LoadCaseReader(Component):
     load_cases = VarTree(LoadVectorArrayCaseList(), iotype='out', desc='Load case arrays')
 
     def execute(self):
-
         for name in self.case_files:
             fid = open(name, 'r')
             case_id = fid.readline().split()[1]
@@ -96,15 +96,15 @@ class LoadCaseInterpolator(Component):
     """
 
     s = Array(iotype='in', desc='radial positions to interpolate load cases onto')
-    lcIn = VarTree(LoadVectorArrayCaseList(), iotype='in', desc='Load case arrays')
+    load_cases = VarTree(LoadVectorArrayCaseList(), iotype='in', desc='Load case arrays')
 
-    lcOut = List(LoadVectorCaseList, iotype='out', desc='List of 2D cases interpolated onto s')
+    lc2d = List(LoadVectorCaseList, iotype='out', desc='List of 2D cases interpolated onto s')
 
     def execute(self):
 
-        self.lcOut = []
+        self.lc2d = []
         for i, s in enumerate(self.s):
-            self.lcOut.append(self.lcIn._interp_s(s))
+            self.lc2d.append(self.load_cases._interp_s(s))
 
 
 class LoadCaseWriter(Component):

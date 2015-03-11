@@ -18,8 +18,6 @@ class Curve(VariableTree):
     length = Float(desc='Total curve length')
     s = Array(desc='Curve accumulated curve length')
     points = Array(desc='coordinates of curve')
-    ni = Int(desc='Number of points')
-
 
     def __init__(self, points=None):
         super(Curve, self).__init__()
@@ -30,11 +28,9 @@ class Curve(VariableTree):
     def initialize(self, points):
 
             self.points = points
-            self.ni = points.shape[0]
 
             self._compute_s()
             self._compute_dp()
-            self._build_splines()
 
     def _compute_s(self):
         """
@@ -42,9 +38,7 @@ class Curve(VariableTree):
         """
         s = calculate_length(self.points)
         self.length = s[-1]
-        self.ds = np.diff(s)
         self.s = s/s[-1]
-
 
     def _compute_dp(self):
         """compute the unit direction vectors along the curve"""
@@ -52,26 +46,6 @@ class Curve(VariableTree):
         t1 = np.gradient(self.points[:,:])[0]
         self.dp = np.array([t1[i, :] / np.linalg.norm(t1[i, :]) for i in range(t1.shape[0])])
 
-    def _build_splines(self):
-
-        self._splines = []
-
-        for j in range(self.points.shape[1]):
-            self._splines.append(NaturalCubicSpline(self.s, self.points[:, j]))
-
-    def redistribute(self, dist=None, s=None):
-
-        if dist is not None:
-            self.s = distfunc(dist)
-        else:
-            self.s = s
-
-        self.ni = self.s.shape[0]
-        points = np.zeros((self.ni, self.points.shape[1]))
-        for i in range(points.shape[1]):
-            points[:, i] = self._splines[i](self.s)
-
-        self.initialize(points)
 
 @base
 class AirfoilShape(Curve):
@@ -84,15 +58,31 @@ class AirfoilShape(Curve):
     TE pressure side ending at the TE suction side.
     """
 
+    ni = Int(desc='Number of points')
     LE = Array(desc='Leading edge coordinates')
     TE = Array(desc='Trailing edge coordinates')
     sLE = Float(desc='Leading edge curve fraction')
-    chord = Float(desc='chord length')
+
+    def __init__(self, points=None):
+        super(AirfoilShape, self).__init__(points)
+
+        if points is not None:
+            self.initialize(points)
 
     def initialize(self, points):
 
-        super(AirfoilShape, self).initialize(points)
-        self.computeLETE()
+            self.points = points
+
+            self._compute_s()
+            self._compute_dp()
+
+            self.ni = points.shape[0]
+
+            self.spline = []
+            self.spline.append(NaturalCubicSpline(self.s, points[:, 0]))
+            self.spline.append(NaturalCubicSpline(self.s, points[:, 1]))
+
+            self.computeLETE()
 
     def computeLETE(self):
         """
@@ -107,16 +97,15 @@ class AirfoilShape(Curve):
 
         res = minimize(self._sdist, (0.5), method='SLSQP', bounds=[(0, 1)])
         self.sLE = res['x'][0]
-        xLE = self._splines[0](self.sLE)
-        yLE = self._splines[1](self.sLE)
+        xLE = self.spline[0](self.sLE)
+        yLE = self.spline[1](self.sLE)
         self.LE = np.array([xLE, yLE])
         self.curvLE = NaturalCubicSpline(self.s, curvature(self.points))(self.sLE)
-        self.chord = np.linalg.norm(self.LE-self.TE)
 
     def _sdist(self, s):
 
-        x = self._splines[0](s)
-        y = self._splines[1](s)
+        x = self.spline[0](s)
+        y = self.spline[1](s)
         return -((x - self.TE[0])**2 + (y - self.TE[1])**2)**0.5
 
     def leading_edge_dist(self, ni):
@@ -160,32 +149,12 @@ class AirfoilShape(Curve):
         elif dLE:
             dist = [[0., dTE, 1], [self.sLE, self.leading_edge_dist(ni), ni / 2], [1., dTE, ni]]
 
-        super(AirfoilShape, self).redistribute(dist)
+        s = distfunc(dist)
 
-        return self
+        points = np.zeros((ni, 2))
+        for i in range(2):
+            points[:, i] = self.spline[i](s)
 
-    def redistribute_chordwise(self, dist):
-        """
-        redistribute the airfoil according to a chordwise distribution
-        """
-        
-        # self.redistribute(self.ni, even=True)
-        iLE = np.argmin(self.points[:,0])
-        ni = dist.shape[0]
-        dist = np.asarray(dist)
-        points = np.zeros((dist.shape[0] * 2 - 1, self.points.shape[1]))
-
-        # interpolate pressure side coordinates
-        yps = NaturalCubicSpline(self.points[:iLE+1, 0][::-1],
-                                 self.points[:iLE+1, 1][::-1])
-        ps = yps(dist)
-        # interpolate suction side coordinates
-        yss = NaturalCubicSpline(self.points[iLE:,0],
-                                 self.points[iLE:,1])
-        ss = yss(dist)
-        points[:ni-1, 0] = dist[::-1][:-1]
-        points[ni-1:, 0] = dist
-        points[:, 1] = np.append(ps[::-1][:-1], ss, axis=0)
         return AirfoilShape(points)
 
     def s_to_11(self, s):
@@ -232,35 +201,10 @@ class AirfoilShape(Curve):
 
         p = np.zeros(2)
         for i in range(2):
-            p[i] = self._splines[i](s)
+            p[i] = self.spline[i](s)
 
         return p
 
-    def gurneyflap(self, gf_height, gf_length_factor):
-        """add a Gurney flap shaped using a tanh function"""
-
-        if gf_height == 0.: return
-        # if the length is not specified it is set to 3 x gf_height
-        gf_length = gf_length_factor * gf_height
-
-        # identify starting point of the gf along the chord
-        x_gf = 1. - gf_length
-        id1 = (np.abs(x_gf - self.points[0:self.ni / 2, 0])).argmin() + 1
-        s = np.linspace(x_gf, self.points[0, 0], 100)
-        smax = s[-1] - s[0]
-        h = np.zeros(100)
-        for i in range(100):
-            h[i] = (min(.90 * gf_height, gf_height*(-np.tanh((s[i] - s[0])/smax*3)+1.)))/0.90
-        h = h[::-1]
-        self.gfs = s
-        self.gfh = h
-
-        # add the gf shape to the airfoil
-        points = self.points.copy()
-        for i in range(0,id1):
-            points[i,1] = points[i,1] - np.interp(points[i, 0], s, h)
-
-        return AirfoilShape(points)
 
 class BlendAirfoilShapes(object):
     """
@@ -372,8 +316,7 @@ class BlendAirfoilShapes(object):
 @base
 class BeamGeometryVT(VariableTree):
 
-    smax = Float(desc='Total accumulated length of beam')
-    s = Array(desc='Curve fraction')
+    s = Array(desc='x-coordinates of beam')
     x = Array(desc='x-coordinates of beam')
     y = Array(desc='y-coordinates of beam')
     z = Array(desc='z-coordinates of beam')
@@ -397,7 +340,7 @@ class BeamGeometryVT(VariableTree):
 @base
 class BladePlanformVT(BeamGeometryVT):
 
-    blade_length = Float(units='m', desc='Blade radial length')
+    blade_length = Float(units='m', desc='Blade length')
     chord = Array(units=None, desc='Chord length at each section')
     rthick = Array(units=None, desc='Relative thickness at each section, t/c')
     athick = Array(units=None, desc='Relative thickness at each section, t/c')

@@ -151,62 +151,6 @@ class BeamDisplacementsArrayVT(VariableTree):
 
 
 @base
-class PointLoad(VariableTree):
-    """
-    Point load vector containing forces and moments
-    """
-    Fx = Float(units='N', desc='Force in x-direction')
-    Fy = Float(units='N', desc='Force in y-direction')
-    Fz = Float(units='N', desc='Force in z-direction')
-    Mx = Float(units='N*m', desc='Moment in x-direction')
-    My = Float(units='N*m', desc='Moment in y-direction')
-    Mz = Float(units='N*m', desc='Moment in z-direction')
-
-    def _toarray(self):
-
-        return np.array([self.Fx, self.Fy, self.Fz,
-                         self.Mx, self.My, self.Mz])
-
-    def _fromarray(self, d):
-
-
-        self.Fx = d[0]
-        self.Fy = d[1]
-        self.Fz = d[2]
-        self.Mx = d[3]
-        self.My = d[4]
-        self.Mz = d[5]
-
-
-@base
-class PointLoadArray(VariableTree):
-    """
-    Point load vector containing forces and moments
-    """
-    Fx = Array(units='N', desc='Force in x-direction')
-    Fy = Array(units='N', desc='Force in y-direction')
-    Fz = Array(units='N', desc='Force in z-direction')
-    Mx = Array(units='N*m', desc='Moment in x-direction')
-    My = Array(units='N*m', desc='Moment in y-direction')
-    Mz = Array(units='N*m', desc='Moment in z-direction')
-
-    def _toarray(self):
-
-        return np.array([self.Fx, self.Fy, self.Fz,
-                         self.Mx, self.My, self.Mz])
-
-    def _fromarray(self, d):
-
-
-        self.Fx = d[:, 0]
-        self.Fy = d[:, 1]
-        self.Fz = d[:, 2]
-        self.Mx = d[:, 3]
-        self.My = d[:, 4]
-        self.Mz = d[:, 5]
-
-
-@base
 class LoadVector(VariableTree):
     """
     Point load vector containing forces and moments
@@ -216,11 +160,11 @@ class LoadVector(VariableTree):
     Fx = Float(units='N', desc='Force in x-direction')
     Fy = Float(units='N', desc='Force in y-direction')
     Fz = Float(units='N', desc='Force in z-direction')
-    Fres = Float(units='N', desc='Resulting transverse force')
+    Fres = Float(units='N', desc='Maximum force magnitude')
     Mx = Float(units='N*m', desc='Moment in x-direction')
     My = Float(units='N*m', desc='Moment in y-direction')
     Mz = Float(units='N*m', desc='Moment in z-direction')
-    Mres = Float(units='N*m', desc='Resulting bending moment')
+    Mres = Float(units='N*m', desc='Moment magnitude')
 
     def _toarray(self):
 
@@ -245,8 +189,6 @@ class LoadVectorCaseList(VariableTree):
     """
     List of load vector cases for a given spanwise position
     """
-
-    s = Float(desc='spanwise position')
     cases = List(desc='List of load cases')
 
 
@@ -257,14 +199,14 @@ class LoadVectorArray(VariableTree):
     """
     case_id = Str('dlcx.x', desc='Case identifier')
     s = Array(desc='Running length of blade')
-    Fx = Array(units='N', desc='Force in x-direction')
-    Fy = Array(units='N', desc='Force in y-direction')
-    Fz = Array(units='N', desc='Force in z-direction')
-    Fres = Array(units='N', desc='Resulting transverse force')
-    Mx = Array(units='N*m', desc='Moment in x-direction')
-    My = Array(units='N*m', desc='Moment in y-direction')
-    Mz = Array(units='N*m', desc='Moment in z-direction')
-    Mres = Array(units='N*m', desc='Resulting bending moment')
+    Fx = Array(units='N', desc='Maximum force in x-direction')
+    Fy = Array(units='N', desc='Maximum force in y-direction')
+    Fz = Array(units='N', desc='Maximum force in z-direction')
+    Fres = Array(units='N', desc='Maximum force magnitude')
+    Mx = Array(units='N*m', desc='Maximum moment in x-direction')
+    My = Array(units='N*m', desc='Maximum moment in y-direction')
+    Mz = Array(units='N*m', desc='Maximum moment in z-direction')
+    Mres = Array(units='N*m', desc='Maximum moment magnitude')
 
     def _toarray(self):
 
@@ -291,7 +233,6 @@ class LoadVectorArray(VariableTree):
             cn[i] = np.interp(s, self.s, arr[:, i])
 
         vt = LoadVector()
-        vt.case_id = self.case_id
         vt._fromarray(cn)
         return vt
 
@@ -319,7 +260,6 @@ class LoadVectorArrayCaseList(VariableTree):
         """
 
         lc2d = LoadVectorCaseList()
-        lc2d.s = s
         for case in self.cases:
             lc2d.cases.append(case._interp_s(s))
 
@@ -329,7 +269,7 @@ class LoadVectorArrayCaseList(VariableTree):
 @base
 class RotorOperationalData(VariableTree):
 
-    vhub = Float(desc='wind speed')
+    wsp = Float(desc='wind speed')
     rpm = Float(desc='rotational speed')
     pitch = Float(desc='blade pitch')
 
@@ -337,6 +277,6 @@ class RotorOperationalData(VariableTree):
 @base
 class RotorOperationalDataArray(VariableTree):
 
-    vhub = Array(desc='wind speed')
+    wsp = Array(desc='wind speed')
     rpm = Array(desc='rotational speed')
     pitch = Array(desc='blade pitch')
