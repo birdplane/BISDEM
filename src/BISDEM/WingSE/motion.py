@@ -12,7 +12,7 @@ class wing_motion(Component):
     
     """
     
-    1. Calculates wing position for according to given mechanism motion and wing definition (wingpos)
+    1. Calculates wing position according to given mechanism motion and wing definition (wingpos)
     
     2. Calculates velocity over wingspan with given discretization for an equivalent spar
     
@@ -44,7 +44,7 @@ class wing_motion(Component):
         
         """
         
-        Calculates wing position for according to given mechanism motion and wing definition
+        Calculates wing position according to given mechanism motion and wing definition
         
         """
         
