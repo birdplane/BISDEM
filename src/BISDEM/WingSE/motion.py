@@ -24,7 +24,7 @@ class wing_motion(Component):
     mpos = VarTree(MechPosVT(), iotype='in', desc='Mech position')
     
     # Outputs
-    wpos = VarTree(WingPosVT(), iotype='out', desc='Wing position')
+    wpos = VarTree(WingPosVT(), iotype='out', desc='Position of the points O, A, C, D, E for each time step')
     Dymax = Float(iotype='out', desc='Highest wing tip location')
     AD = Float(iotype='out', desc='Area encirceld by D')
 
@@ -63,7 +63,3 @@ class wing_motion(Component):
                         
             D1, D2 = triangle(spos.E,spos.C,sdef.CD,sdef.ED,sdef.EC)
             spos.D = D1
-
-            
-
-    
