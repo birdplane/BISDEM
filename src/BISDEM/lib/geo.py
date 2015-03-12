@@ -25,7 +25,7 @@ def triangle(A,B,a,b,c):
     # Transformation into actual coordinate system
     
     AB = B-A
-    ABperp = np.array([-AB[1], AB[0], A[2]])
+    ABperp = np.array([-AB[1], AB[0], np.zeros(len(A[2]))])
     C1 = A + x/c * AB + y2/c * ABperp
     C2 = A + x/c * AB - y2/c * ABperp
     
