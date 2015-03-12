@@ -1,19 +1,27 @@
 
-from openmdao.main.api import Component
-from openmdao.lib.datatypes.api import Float
+from openmdao.main.api import Component, Assembly
+from openmdao.lib.datatypes.api import Float, List, Slot, File, Instance
+from fusedwind.turbine.geometry_vt import BeamGeometryVT, BladePlanformVT
 
 
-# Make sure that your class has some kind of docstring. Otherwise
-# the descriptions for your variables won't show up in the
-# source ducumentation.
-class example(Component):
+class WingSurface(Component):
     """
+    This class carries a full description of the wing surface at any time-step. 
+    The definition is based of the fusedwind framework definitions. http://www.fusedwind.org
     """
-    # declare inputs and outputs here, for example:
-    #x = Float(0.0, iotype='in', desc='description for x')
-    #y = Float(0.0, iotype='out', desc='description for y')
-
+    
+    # Inputs
+    eqspar_geom = List(BeamGeometryVT(), iotype='in', desc='Position and twist of the equivalent(discrete) beam of the wing, fusedwind definition'
+                          'per timestep, type is BeamGeometryVT')
+    eqspar_pf = List(BladePlanformVT(), iotype='in', desc='Wing planform definition along beam(discrete), needs to be same length'
+                      'as eqspar_geom, also per time step. Type is BeamPlanformVT')
+    airfoil = List(File(), iotype="in", desc='List of airfoil description files')
+    
+    # Outputs
+    wingsurf = Instance(Assembly, iotype="out", desc="Complete 3D descrpition of the wing surface")
+    
     def execute(self):
-        """ do your calculations here """
-        print 'hello world'
+        """ Calculate the wingsurface from the spar geometry """
+        
+        print self.eqspar_geom[0].x
         

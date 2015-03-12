@@ -10,6 +10,7 @@ from BISDEM.MechSE.motion import mech_motion
 from BISDEM.WingSE.init import wing_init
 from BISDEM.WingSE.motion import wing_motion
 from BISDEM.WingSE.speeds import wing_speed
+from BISDEM.WingSE.twist import wing_twist
 
 """
 Example for how to define mechanism and wing and run and visualize the behavior for given conditions
@@ -55,7 +56,7 @@ tsteps = np.linspace(0,T,numsteps+1)
 tsteps = tsteps[0:-1]
 omega = np.ones(numsteps)*f*2*np.pi # angular velocity (nof for constant rotational speed)
 theta = tsteps*omega
-phi = np.ones(len(theta)) * np.radians(0)
+phi = np.ones(len(theta)) * np.radians(-10)
 
 MechMotion.phi = phi
 MechMotion.theta = theta
@@ -88,6 +89,8 @@ WingMotion.mpos = MechMotion.mpos
 
 WingMotion.run()
 
+
+
 """
 Calculate the speed of point C and D
 """
@@ -100,4 +103,20 @@ WingSpeed.dt=dt
 WingSpeed.run()
 
 plt.plot(theta[0:-1],WingSpeed.wspd.front.C[1],'r--',theta[0:-1],WingSpeed.wspd.front.D[1],'b--')
+plt.show()
+
+
+"""
+Calculate wing twist angle from phaselag
+"""
+
+WingTwist = wing_twist()
+
+WingTwist.wpos = WingMotion.wpos
+WingTwist.bz = MechInit.bz
+
+WingTwist.run()
+
+plt.figure(2)
+plt.plot(theta,WingTwist.wtwist.C,'r--',theta,WingTwist.wtwist.D,'b--')
 plt.show()
