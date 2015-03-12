@@ -144,4 +144,18 @@ class WingPosVT(VariableTree):
     back = VarTree(SparPosVT(),  desc='back spar position over time')
     
     
+class SparSpdVT(VariableTree):
     
+    C = Array(units='m',  desc='point C speeds over time')
+    D = Array(units='m',  desc='point C speeds over time')
+    
+class WingSpdVT(VariableTree):
+    
+    """
+    
+    Carries the speed of positions on the wing
+    
+    """
+      
+    front = VarTree(SparSpdVT(),  desc='front spar positon over time')
+    back = VarTree(SparSpdVT(),  desc='back spar position over time')
