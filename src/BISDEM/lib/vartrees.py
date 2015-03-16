@@ -164,3 +164,20 @@ class WingPhlVT(VariableTree):
     
     C = Array(units='m',  desc='point C speeds over time')
     D = Array(units='m',  desc='point C speeds over time')
+    
+class MotorVT(VariableTree):
+    """ 
+    This class is a full description of the motor
+    """
+    kV = Float(desc='Voltage gain factor rpm/V')
+    P_max = Float(desc='Maximum power available (15sec)')
+    A_max = Float(desc='Maximum current before overheating (15sec)')
+    I_0 = Float(desc='Zero load current')
+    Rm = Float(desc='Winding resistance')
+    
+class PowerSupplyVT(VariableTree):
+    """ 
+    This class is a full description of the power supply
+    """
+    
+    voltage = Float(desc='Battery voltage')
