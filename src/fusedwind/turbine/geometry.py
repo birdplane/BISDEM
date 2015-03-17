@@ -88,7 +88,6 @@ class pchipSpline(SplineBase):
         ynew: array
             resampled points
         """
-
         spl = pchip(Cx, C)
         return spl(x)
 
@@ -244,7 +243,6 @@ class FFDSplineComponentBase(Component):
         """
 
         """
-
         self.base_spline = spline_dict[self.base_spline_type]()
         self.set_spline(self.spline_type)
         self.Pbase = self.base_spline(self.x, self.xinit, self.Pinit)
@@ -418,7 +416,6 @@ class ComputeAthick(Component):
     def execute(self):
 
         self.athick = self.chord * self.rthick
-
 
 class ComputeSmax(Component):
 

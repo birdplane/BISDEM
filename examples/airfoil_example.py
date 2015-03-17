@@ -12,13 +12,14 @@ def lofted_blade_shape_example():
 
     top = Assembly()
 
-    configure_bladesurface(top, home+'/git/BISDEM/data/DTU_10MW_RWT_blade_axis_prebend.dat', planform_nC=6)
+    configure_bladesurface(top, home+'/git/BISDEM/data/DTU_10MW_RWT_blade_axis_prebend.dat', planform_nC=2)
 
     # load the planform file
     top.blade_length = 86.366
     top.span_ni = 50
 
     print 'planform variables: ', top.pf_splines.pfOut.list_vars()
+    print top.pf_splines.pfOut.s
 
     b = top.blade_surface
 
@@ -27,15 +28,11 @@ def lofted_blade_shape_example():
 
     # load the airfoil shapes defining the blade
     for f in [home+'/git/BISDEM/data/ffaw3241.dat',
-              home+'/git/BISDEM/data/ffaw3301.dat',
-              home+'/git/BISDEM/data/ffaw3360.dat',
-              home+'/git/BISDEM/data/ffaw3480.dat' ,
-              home+'/git/BISDEM/data/tc72.dat' ,
-              home+'/git/BISDEM/data/cylinder.dat']:
+              home+'/git/BISDEM/data/ffaw3301.dat']:
 
         b.base_airfoils.append(np.loadtxt(f))
 
-    b.blend_var = np.array([0.241, 0.301, 0.36, 0.48, 0.72, 1.])
+    b.blend_var = np.array([0.5, 1.])
 
     top.run()
 

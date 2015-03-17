@@ -31,6 +31,8 @@ class wing_init(Component):
     bED = Float( iotype='in', desc='back spar: distance between point E and D')
     bz = Float(iotype='in', desc='back spar: z position')
 
+    nS = Float(iotype='in', desc='Number of wing sections')
+    mpos = VarTree(MechPosVT(), iotype='in', desc='Mech position')
     
     wdef = VarTree(WingDefVT(), iotype='out', desc='wing definition')
 

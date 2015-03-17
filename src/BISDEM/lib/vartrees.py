@@ -3,7 +3,9 @@ Collection of all VarTrees
 """
 
 from openmdao.main.api import VariableTree
-from openmdao.lib.datatypes.api import Float, VarTree, Array
+from openmdao.lib.datatypes.api import Float, VarTree, Array, List
+
+from fusedwind.turbine.geometry_vt import BeamGeometryVT
 
 # Mechanism VarTrees
 
@@ -105,6 +107,8 @@ class WingDefVT(VariableTree):
     
     front = VarTree(SparDefVT(),  desc='front spar definition')
     back = VarTree(SparDefVT(),  desc='back spar definition')
+    eqspar_geom = List(BeamGeometryVT(), iotype='in', desc='Position and twist of the equivalent(discrete) beam of the wing, fusedwind definition'
+                          'per timestep, type is BeamGeometryVT')
 
 class SparPosVT(VariableTree):
     
@@ -159,6 +163,16 @@ class WingSpdVT(VariableTree):
       
     front = VarTree(SparSpdVT(),  desc='front spar positon over time')
     back = VarTree(SparSpdVT(),  desc='back spar position over time')
+    
+class WingPlanformVT(VariableTree):
+    """
+    Specifies purely the wing planform parameters
+    """
+    blade_length = Float(units='m', desc='Blade radial length')
+    chord = Array(units=None, desc='Chord length at each section')
+    rthick = Array(units=None, desc='Relative thickness at each section, t/c')
+    athick = Array(units=None, desc='Relative thickness at each section, t/c')
+    p_le = Array(units=None, desc='Normalized distance from LE to pitch axis')
     
 class WingPhlVT(VariableTree):
     
