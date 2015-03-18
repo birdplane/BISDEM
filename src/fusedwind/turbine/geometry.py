@@ -385,6 +385,23 @@ class ComputeDist(Component):
             self.x = self.x_dist
         else:
             self.x = distfunc([[0., -1, 1], [1., 0.2 * 1./self.span_ni, self.span_ni]])
+            
+        print self.x
+            
+class ComputeEqualDist(Component):
+    """
+    simple redistribution function that clusters cells towards one end
+    """
+
+    span_ni = Int(iotype='in')
+    x_dist = Array(iotype='in')
+    x = Array(iotype='out')
+
+    def execute(self):
+
+        self.x = self.x_dist
+        
+        print self.x_dist
 
 
 class ScaleChord(Component):
@@ -447,16 +464,24 @@ class SplinedBladePlanform(Assembly):
     pfIn = VarTree(BladePlanformVT(), iotype='in')
     pfOut = VarTree(BladePlanformVT(), iotype='out')
 
-    def __init__(self):
+    def __init__(self, equal_sections):
         super(SplinedBladePlanform, self).__init__()
         
         self.blade_length_ref = 0.
-
-        self.add('compute_x', ComputeDist())
-        self.driver.workflow.add('compute_x')
-        self.connect('span_ni', 'compute_x.span_ni')
-        self.connect('compute_x.x', 'pfOut.s')
-        self.create_passthrough('compute_x.x_dist')
+        
+        if not equal_sections:
+            self.add('compute_x', ComputeDist())
+            self.driver.workflow.add('compute_x')
+            self.connect('span_ni', 'compute_x.span_ni')
+            self.connect('compute_x.x', 'pfOut.s')
+            self.create_passthrough('compute_x.x_dist')
+        
+        else:
+            self.add('compute_x', ComputeEqualDist())
+            self.driver.workflow.add('compute_x')
+            self.connect('span_ni', 'compute_x.span_ni')
+            self.connect('compute_x.x', 'pfOut.s')
+            self.create_passthrough('compute_x.x_dist')
 
     def _pre_execute(self):
         super(SplinedBladePlanform, self)._pre_execute()

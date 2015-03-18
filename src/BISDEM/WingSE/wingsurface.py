@@ -30,7 +30,7 @@ class WingSurface(Component):
         a = Assembly()
         
         # Add a splined blade planform from the input data
-        a.add('pf_splines', SplinedBladePlanform())
+        a.add('pf_splines', SplinedBladePlanform(True))
         a.driver.workflow.add('pf_splines')
         a.pf_splines.nC = 3
         a.pf_splines.pfIn = self.eqbeams[0]

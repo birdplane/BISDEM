@@ -16,7 +16,7 @@ def configure_planform(cls, file_base, planform_nC=6):
 
     from fusedwind.turbine.geometry import SplinedBladePlanform, read_blade_planform
 
-    cls.add('pf_splines', SplinedBladePlanform())
+    cls.add('pf_splines', SplinedBladePlanform(False))
     cls.driver.workflow.add('pf_splines')
     cls.pf_splines.nC = planform_nC
     cls.pf_splines.pfIn = read_blade_planform(file_base)
