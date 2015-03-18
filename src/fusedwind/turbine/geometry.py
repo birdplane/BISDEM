@@ -390,7 +390,7 @@ class ComputeDist(Component):
             
 class ComputeEqualDist(Component):
     """
-    simple redistribution function that clusters cells towards one end
+    simple redistribution function that distributes the sections uniformly
     """
 
     span_ni = Int(iotype='in')
@@ -398,11 +398,11 @@ class ComputeEqualDist(Component):
     x = Array(iotype='out')
 
     def execute(self):
-
-        self.x = self.x_dist
         
-        print self.x_dist
-
+        if self.x_dist.shape[0] > 0:
+            self.x = self.x_dist
+        else:
+            self.x = np.linspace(0.0, 1.0, self.span_ni)
 
 class ScaleChord(Component):
     """

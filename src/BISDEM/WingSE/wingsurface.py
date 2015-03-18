@@ -1,6 +1,8 @@
+import numpy as np
+
 from BISDEM.lib.vartrees import WingPlanformVT
 from openmdao.main.api import Component, Assembly
-from openmdao.lib.datatypes.api import Float, List, Slot, File, Instance
+from openmdao.lib.datatypes.api import Float, List, Slot, File, Instance, Str
 from fusedwind.turbine.geometry_vt import BeamGeometryVT, BladePlanformVT
 from fusedwind.turbine.geometry import SplinedBladePlanform, read_blade_planform, LoftedBladeSurface
 
@@ -16,7 +18,7 @@ class WingSurface(Component):
                           'per timestep, type is BeamGeometryVT')
     planform_in = List(WingPlanformVT(), iotype='in', desc='Wing planform definition along beam(discrete), needs to be same length'
                       'as eqspar_geom, also per time step. Type is BeamPlanformVT')
-    airfoil = List(File(), iotype="in", desc='List of airfoil description files')
+    airfoil = List(Str, iotype="in", desc='List of airfoil description files')
     
     # Outputs
     wingsurf = Instance(Assembly(), iotype="out", desc="Complete 3D descrpition of the wing surface")
@@ -64,9 +66,14 @@ class WingSurface(Component):
         for pf, spar in zip(self.planform_in, self.eqspar_geom):
             spar.__class__ = BladePlanformVT
             b = spar
+            # Normalize input data
+            b.x = b.x/b.z[-1]
+            b.y = b.y/b.z[-1]
+            b.z = b.z/b.z[-1]
+            b.s = b.s/b.s[-1]
             b.blade_length = pf.blade_length
-            b.chord = pf.chord
-            b.rthick  = pf.rthick
+            b.chord = pf.chord/b.z[-1]
+            b.rthick  = pf.rthick/np.max(pf.rthick)
             b.athick = pf.athick
             b.p_le = pf.p_le
             self.eqbeams.append(b)
