@@ -30,23 +30,12 @@ planform.rthick = np.array([0.05, 0.05, 0.05]);
 planform.p_le = [0.0, 0.0, 0.0];
 surface.planform_in = [planform];
 
-surface.airfoil = [home+'/git/BISDEM/data/ffaw3241.dat'];
+surface.airfoils = [home+'/git/BISDEM/data/ffaw3241.dat', home+'/git/BISDEM/data/ffaw3301.dat'];
+surface.span_ni = 3;
 
 surface.run()
 surf = surface.wingsurf
-
-# load the planform file
-surf.span_ni = 3
-
-
 b = surf.blade_surface
-
-# distribute 200 points evenly along the airfoil sections
-b.chord_ni = 200
-b.base_airfoils.append(np.loadtxt(home+'/git/BISDEM/data/ffaw3241.dat'))
-b.base_airfoils.append(np.loadtxt(home+'/git/BISDEM/data/ffaw3301.dat'))
-b.blend_var = np.array([0.5, 1.])
-
 surf.run()
 
 pf = surf.pf_splines.pfOut

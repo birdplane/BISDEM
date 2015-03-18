@@ -2,7 +2,7 @@ import numpy as np
 
 from BISDEM.lib.vartrees import WingPlanformVT
 from openmdao.main.api import Component, Assembly
-from openmdao.lib.datatypes.api import Float, List, Slot, File, Instance, Str
+from openmdao.lib.datatypes.api import Float, List, Slot, File, Instance, Str, Int
 from fusedwind.turbine.geometry_vt import BeamGeometryVT, BladePlanformVT
 from fusedwind.turbine.geometry import SplinedBladePlanform, read_blade_planform, LoftedBladeSurface
 
@@ -18,7 +18,8 @@ class WingSurface(Component):
                           'per timestep, type is BeamGeometryVT')
     planform_in = List(WingPlanformVT(), iotype='in', desc='Wing planform definition along beam(discrete), needs to be same length'
                       'as eqspar_geom, also per time step. Type is BeamPlanformVT')
-    airfoil = List(Str, iotype="in", desc='List of airfoil description files')
+    span_ni = Int(iotype='in', desc='Number of sections for the aerodynamic calculation')
+    airfoils = List(Str, iotype="in", desc='List of airfoil description files')
     
     # Outputs
     wingsurf = Instance(Assembly(), iotype="out", desc="Complete 3D descrpition of the wing surface")
@@ -38,9 +39,6 @@ class WingSurface(Component):
         a.pf_splines.pfIn = self.eqbeams[0]
         a.pf_splines.configure_splines()
         
-        print a.pf_splines.blade_length
-        print a.pf_splines.chord.P
-        
         a.create_passthrough('pf_splines.blade_length')
         a.create_passthrough('pf_splines.span_ni')
         
@@ -49,6 +47,17 @@ class WingSurface(Component):
         
         a.connect('pf_splines.pfOut', 'blade_surface.pf')
         a.connect('span_ni', 'blade_surface.span_ni')
+        
+        # load the planform file
+        a.span_ni = self.span_ni
+        
+        b = a.blade_surface
+        
+        # distribute 200 points evenly along the airfoil sections
+        b.chord_ni = 200
+        for f in self.airfoils:
+            b.base_airfoils.append(np.loadtxt(f))
+        b.blend_var = np.array([0.25, 0.75])
         
         self.wingsurf = a
         
@@ -60,21 +69,21 @@ class WingSurface(Component):
         if not len(self.eqspar_geom)==len(self.planform_in):
             raise(Exception("eqspar_geom and eqspar_pf need to have the same length (amount of segments)"))
         
-        print "Hello wrold"
-        
         self.eqbeams = []
         for pf, spar in zip(self.planform_in, self.eqspar_geom):
             spar.__class__ = BladePlanformVT
             b = spar
+            b.blade_length = pf.blade_length
+            b.athick = pf.athick
+            b.p_le = pf.p_le
+            
             # Normalize input data
             b.x = b.x/b.z[-1]
             b.y = b.y/b.z[-1]
             b.z = b.z/b.z[-1]
             b.s = b.s/b.s[-1]
-            b.blade_length = pf.blade_length
             b.chord = pf.chord/b.z[-1]
             b.rthick  = pf.rthick/np.max(pf.rthick)
-            b.athick = pf.athick
-            b.p_le = pf.p_le
+            
             self.eqbeams.append(b)
         
