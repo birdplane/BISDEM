@@ -30,3 +30,39 @@ def triangle(A,B,a,b,c):
     C2 = A + x/c * AB - y2/c * ABperp
     
     return C1, C2
+
+def rotx(theta,x1):
+    
+    """
+    Rotate vector x1 around x axis with angle theta    
+    """
+    
+    R_x = np.array([[1.,    0.,             0.],
+                    [0.,    np.cos(theta),  np.sin(theta)],
+                    [0.,    -np.sin(theta), np.cos(theta)]])
+    
+    return np.dot(R_x,x1)
+
+def roty(theta,x1):
+    
+    """
+    Rotate vector x1 around y axis with angle theta  
+    """
+       
+    R_y = np.array([[np.cos(theta),     0.,     np.sin(theta)],
+                    [0.,                1.,     0.],
+                    [-np.sin(theta),    0.,     np.cos(theta)]])
+    
+    return np.dot(R_y,x1)
+
+def rotz(theta,x1):
+    
+    """
+    Rotate vector x1 around z axis with angle theta         
+    """
+    
+    R_z = np.array([[np.cos(theta),     -np.sin(theta),     0.],
+                    [np.sin(theta),     np.cos(theta),      0.],
+                    [0.,                0.,                 1.]])
+    
+    return np.dot(R_z,x1)
