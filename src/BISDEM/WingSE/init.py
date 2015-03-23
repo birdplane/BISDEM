@@ -2,7 +2,7 @@
 from openmdao.main.api import Component
 from openmdao.lib.datatypes.api import Float, VarTree
 
-from BISDEM.lib.vartrees import SparDefVT, WingDefVT
+from BISDEM.lib.vartrees import SparDefVT, WingDefVT, MechPosVT
 from docutils import frontend
 
 
