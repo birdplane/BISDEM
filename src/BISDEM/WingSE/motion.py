@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from openmdao.main.api import Component
 from openmdao.lib.datatypes.api import Float,VarTree
 
-from BISDEM.lib.vartrees import WingDefVT, WingPosVT, MechPosVT
+from BISDEM.lib.vartrees import WingDefVT, WingPosVT, MechPosVT, WingSpdVT, WingPhlVT
 from BISDEM.lib.geo import triangle
 
 
