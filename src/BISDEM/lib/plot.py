@@ -46,7 +46,7 @@ def mechanimation2D(lpos,spos,speed):
             
         return tuple(lines)
     
-    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(lpos.P[0]), interval=speed, blit=True)
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=len(lpos.P[0]), interval=speed, blit=False)
     plt.plot(lpos.Q[0],lpos.Q[1],'b')
     plt.plot(lpos.P[0],lpos.P[1],'b')
     plt.show()
@@ -68,7 +68,7 @@ def mechplot2D(mpos,wpos,i):
     Plots
     
     """
-    
+   
     plt.figure('Front leg')
     plt.title('Mechanism front leg hinge traces')
     plt.axis('equal')
@@ -82,6 +82,8 @@ def mechplot2D(mpos,wpos,i):
     plt.plot(wpos.front.E[0],wpos.front.E[1],'r')
     plt.plot(wpos.front.C[0],wpos.front.C[1],'r')
     plt.plot(wpos.front.D[0],wpos.front.D[1],'r')
+    
+    plt.plot(wpos.eqspar_geom[1].x, wpos.eqspar_geom[1].y, 'k*')
     
     if i>=0:
 

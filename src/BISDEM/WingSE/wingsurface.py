@@ -67,6 +67,8 @@ class WingSurface(Component):
         
         # Make sure that the two input arrays have the same length
         if not len(self.eqspar_geom)==len(self.planform_in):
+            print "length of eqspar_geom: ", len(self.eqspar_geom)
+            print "length of planform: ", len(self.planform_in)
             raise(Exception("eqspar_geom and eqspar_pf need to have the same length (amount of segments)"))
         
         self.eqbeams = []

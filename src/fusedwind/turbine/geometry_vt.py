@@ -380,6 +380,9 @@ class BeamGeometryVT(VariableTree):
     rot_x = Array(desc='x-rotation of beam')
     rot_y = Array(desc='y-rotation of beam')
     rot_z = Array(desc='z-rotation of beam')
+    vel_x = Array(desc='flap speed in x direction')
+    vel_y = Array(desc='flap speed in y direction')
+    vel_z = Array(desc='flap speed in z direction')
 
     def _compute_s(self):
         """

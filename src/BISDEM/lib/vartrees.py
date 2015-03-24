@@ -107,8 +107,6 @@ class WingDefVT(VariableTree):
     
     front = VarTree(SparDefVT(),  desc='front spar definition')
     back = VarTree(SparDefVT(),  desc='back spar definition')
-    eqspar_geom = List(BeamGeometryVT(), iotype='in', desc='Position and twist of the equivalent(discrete) beam of the wing, fusedwind definition'
-                          'per timestep, type is BeamGeometryVT')
 
 class SparPosVT(VariableTree):
     
@@ -146,6 +144,8 @@ class WingPosVT(VariableTree):
       
     front = VarTree(SparPosVT(),  desc='front spar positon over time')
     back = VarTree(SparPosVT(),  desc='back spar position over time')
+    eqspar_geom = List(BeamGeometryVT(), iotype='in', desc='Position and twist of the equivalent(discrete) beam of the wing, fusedwind definition'
+                          'per timestep, type is BeamGeometryVT')
     
     
 class SparSpdVT(VariableTree):

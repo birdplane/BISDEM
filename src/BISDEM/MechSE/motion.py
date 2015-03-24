@@ -33,7 +33,7 @@ class mech_motion(Component):
             O_y = np.zeros(len(self.theta))
             O_z = np.ones(len(self.theta)) * ldef.z
             
-            lpos.O = np.array([O_x, O_y, O_z]) 
+            lpos.O = np.array([O_x, O_y, O_z])
                 
                 
             # Position of outer gear mount
