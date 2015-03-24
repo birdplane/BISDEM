@@ -29,13 +29,13 @@ MechInit = mech_init()
 
 MechInit.fGx = MechInit.bGx = -16e-3
 MechInit.fGy = MechInit.bGy = -70e-3
-MechInit.fRi = MechInit.bRi = 9e-3
-MechInit.fRo = MechInit.bRo = 25e-3
-MechInit.fQB = MechInit.bQB = 65e-3
+MechInit.fRi = MechInit.bRi = 8.5e-3
+MechInit.fRo = MechInit.bRo = 24e-3
+MechInit.fQB = MechInit.bQB = 67e-3
 MechInit.fPA = MechInit.bPA = 65e-3
 MechInit.ftheta_del = MechInit.btheta_del = np.radians(60)
 MechInit.fBO = MechInit.bBO = 45e-3
-MechInit.fAO = MechInit.bAO = 16e-3
+MechInit.fAO = MechInit.bAO = 20e-3
 
 MechInit.fz = 0
 MechInit.bz = -100e-3
@@ -65,11 +65,11 @@ Define Wing
 """
 WingInit = wing_init()
 
-WingInit.fAE = WingInit.bAE = 0.235
-WingInit.fEC = WingInit.bEC = 0.016
-WingInit.fOC = WingInit.bOC = 0.235
-WingInit.fCD = WingInit.bCD = 0.470
-WingInit.fED = WingInit.bED = 0.455
+WingInit.fAE = WingInit.bAE = 0.294
+WingInit.fEC = WingInit.bEC = 0.02
+WingInit.fOC = WingInit.bOC = 0.294
+WingInit.fCD = WingInit.bCD = 0.3825
+WingInit.fED = WingInit.bED = 0.364
 WingInit.fz = 0.
 WingInit.bz = MechInit.bz
 
