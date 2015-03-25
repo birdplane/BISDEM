@@ -89,6 +89,9 @@ class wing_motion(Component):
             ocf = ocf/np.linalg.norm(ocf)
             cdf = cdf/np.linalg.norm(cdf)
             
+            ocb = ocb/np.linalg.norm(ocb)
+            cdb = cdb/np.linalg.norm(cdb)
+            
             # beam position
             beam_pos = np.array([[0.0, 0.0, 0.0]])
             for r in r_OC[1:]:
@@ -101,31 +104,50 @@ class wing_motion(Component):
             # put position into correct structure
             beam = BeamGeometryVT()
             beam.x = beam_pos.T[2]
-            beam.y = np.ones(len(beam_pos.T[0]))*np.arange(0.0, 0.3, 0.3/len(beam_pos.T[0])) # beam_pos.T[1]
+            beam.y = beam_pos.T[1]
             beam.z = beam_pos.T[0]
             
             # beam twist
             beam_pos_back = np.array([[0.0, 0.0, self.wpos.back.O[2][0]]])
-            rot_y = []
-            rot_y.append(0)
+            
+            z = np.array([0, 0, 1])
+            x = np.array([ocf])
             for r in r_OC[1:]:
                 beam_pos_back = np.vstack((beam_pos_back, [ocb*r]))
                 # Assumption: no taper, no sweep
                 beam_pos_back[-1][2] = self.wpos.back.O[2][0]
                 #rot_x.append(np.rad2deg(np.arccos(np.dot(ocf, np.array([1, 0, 0]))/np.linalg.norm(ocf))))
-                rot_y.append(0)
+                z = np.vstack((z, [0, 0, 1]))
+                x = np.vstack((x, [ocf]))
 
             for r in r_CD[1:]:
                 beam_pos_back = np.vstack((beam_pos_back, [beam_pos_back[len(r_OC)-1]+cdb*r]))
                 # Assumption: no taper, no sweep
                 beam_pos_back[-1][2] = self.wpos.back.O[2][0]
                 #rot_x.append(np.rad2deg(np.arccos(np.dot(cdf, np.array([1, 0, 0]))/np.linalg.norm(cdf))))
-                rot_y.append(0)
+                z = np.vstack((z, [0, 0, 1]))
+                x = np.vstack((x, [cdf]))
 
-            beam.rot_x = np.ones(len(beam_pos.T[0]))*0.0 #np.array(rot_x)
-            beam.rot_y = rot_y #np.rad2deg(np.arctan((beam_pos.T[0]-beam_pos_back.T[0])/(beam_pos.T[2]-beam_pos_back.T[2])))
-            beam.rot_z = np.ones(len(beam_pos.T[0]))*-20.0 #np.rad2deg(np.arccos(np.dot(beam_pos_back-beam_pos, [0, 0, 1])/np.linalg.norm(beam_pos_back-beam_pos)))   # np.rad2deg(np.arctan((beam_pos.T[1]-beam_pos_back.T[1])/(beam_pos.T[2]-beam_pos_back.T[2])))
+            y = np.cross(x, z)
+            y = y/((y*y).sum(axis=1)**0.5)[:, np.newaxis]
+            
+            
+
+            v = beam_pos-beam_pos_back
+            v_y = (v*y).sum(axis=1)
+            v_x = (v*x).sum(axis=1)
+            v_z = (v*z).sum(axis=1)
+            
+            #v_z = beam_pos-beam_pos_back
+            #v_z[:,1] = np.zeros(len(v_z))
+            #v_z = v_z/((v_z*v_z).sum(axis=1)**0.5)[:,np.newaxis]
+            
+            beam.rot_x = np.zeros(len(beam_pos.T[0])) #np.array(rot_x)
+            beam.rot_y = np.zeros(len(beam_pos.T[0])) #np.rad2deg(np.arctan((beam_pos.T[0]-beam_pos_back.T[0])/(beam_pos.T[2]-beam_pos_back.T[2])))
+            beam.rot_z = -np.rad2deg(np.arctan(v_y/v_z)) #np.sign(v[:,1])*np.rad2deg(np.arccos((v*v_z).sum(axis=1)/(v*v).sum(axis=1)**0.5))   # np.rad2deg(np.arctan((beam_pos.T[1]-beam_pos_back.T[1])/(beam_pos.T[2]-beam_pos_back.T[2])))
             beam.s = calculate_length(np.array([beam.x, beam.y, beam.z]).T)
+            
+            print beam.rot_z[20]
             
             # beam speed
             if len(self.wpos.eqspar_geom)>0:

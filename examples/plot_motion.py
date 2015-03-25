@@ -27,7 +27,7 @@ Define mechanism
 """
 MechInit = mech_init()
 
-MechInit.fGx = MechInit.bGx = -16e-3
+MechInit.fGx = MechInit.bGx = -15e-3
 MechInit.fGy = MechInit.bGy = -70e-3
 MechInit.fRi = MechInit.bRi = 8.5e-3
 MechInit.fRo = MechInit.bRo = 24e-3
@@ -38,7 +38,7 @@ MechInit.fBO = MechInit.bBO = 45e-3
 MechInit.fAO = MechInit.bAO = 20e-3
 
 MechInit.fz = 0
-MechInit.bz = -100e-3
+MechInit.bz = -48.5e-3
 
 MechInit.run()      # Run defintion. Afterwards, mdef is filled.
 
@@ -52,7 +52,7 @@ MechMotion.mdef = MechInit.mdef
  
 # Define running parameters
 theta = np.linspace(0, 2*np.pi, 200)
-phi = np.ones(len(theta)) * np.radians(15)
+phi = np.ones(len(theta)) * np.deg2rad(3.3)
  
 MechMotion.phi = phi
 MechMotion.theta = theta
@@ -105,41 +105,43 @@ surface.airfoils = [home+'/git/BISDEM/data/ffaw3241.dat', home+'/git/BISDEM/data
 surface.span_ni = 30
 
 surface.run()
-surf = surface.wingsurf
-b = surf.blade_surface
-surf.run()
 
-pf = surf.pf_splines.pfOut
+# surf = surface.wingsurf[0]
+# b = surf.blade_surface
+# 
+# surf.run()
+# 
+# pf = surf.pf_splines.pfOut
+# 
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.set_aspect('equal')
+# ax.set_xlim(-0.1, 1.4)
+# ax.set_ylim(-0.5, 1.0)
+# ax.set_zlim(-0.5, 1.0)
+# ax.view_init(18, -133)
+# for i in range(b.span_ni):
+#     ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+# plt.savefig(home+'/result=.png')
+# plt.show()
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.set_aspect('equal')
-MAX = 1.2
-for direction in (-1, 1):
-    for point in np.diag(direction * MAX * np.array([1,1,1])):
-        ax.plot([point[0]], [point[1]], [point[2]], 'w')
-for i in range(b.span_ni):
-    ax.plot(b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1], b.surfout.surface[:, i, 2])
-plt.show()
-plt.figure()
-plt.axis('equal')
-plt.xlim(-1.2, 1.2)
-plt.ylim(-1.2, 1.2)
-for i in range(b.span_ni):
-    plt.plot(b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
-plt.show()
-plt.figure()
-plt.axis('equal')
-plt.xlim(-1.2, 1.2)
-plt.ylim(-1.2, 1.2)
-for i in range(b.span_ni):
-    plt.plot(b.surfout.surface[:, i, 2], b.surfout.surface[:, i, 0])
-plt.show()
-plt.figure()
-plt.axis('equal')
-plt.xlim(-1.2, 1.2)
-plt.ylim(-1.2, 1.2)
-for i in range(b.span_ni):
-    plt.plot(b.surfout.surface[:, i, 2], b.surfout.surface[:, i, 1])
-plt.show()
-
+for j, surf in enumerate(surface.wingsurf):
+    print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
+    b = surf.blade_surface
+    surf.run()
+     
+    pf = surf.pf_splines.pfOut
+     
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_aspect('equal')
+    ax.set_xlim(-0.1, 1.4)
+    ax.set_ylim(-0.5, 1.0)
+    ax.set_zlim(-0.5, 1.0)
+    ax.view_init(18, -133)
+    for i in range(b.span_ni):
+        ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+    plt.savefig(home+'/results/%03d.png'%j)
+    plt.close()
+    
+print "Done"

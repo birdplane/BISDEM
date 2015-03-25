@@ -22,7 +22,7 @@ class WingSurface(Component):
     airfoils = List(Str, iotype="in", desc='List of airfoil description files')
     
     # Outputs
-    wingsurf = Instance(Assembly(), iotype="out", desc="Complete 3D descrpition of the wing surface")
+    wingsurf = List(Assembly(), iotype="out", desc="Complete 3D descrpition of the wing surface")
     
     def execute(self):
         """ Calculate the wingsurface from the spar geometry """
@@ -30,36 +30,37 @@ class WingSurface(Component):
         # Make sure that input data has the same length
         self.verify_input()
         
-        a = Assembly()
+        for beam in self.eqbeams:
+            a = Assembly()
         
-        # Add a splined blade planform from the input data
-        a.add('pf_splines', SplinedBladePlanform(True))
-        a.driver.workflow.add('pf_splines')
-        a.pf_splines.nC = 3
-        a.pf_splines.pfIn = self.eqbeams[0]
-        a.pf_splines.configure_splines()
-        
-        a.create_passthrough('pf_splines.blade_length')
-        a.create_passthrough('pf_splines.span_ni')
-        
-        a.add('blade_surface', LoftedBladeSurface())
-        a.driver.workflow.add('blade_surface')
-        
-        a.connect('pf_splines.pfOut', 'blade_surface.pf')
-        a.connect('span_ni', 'blade_surface.span_ni')
-        
-        # load the planform file
-        a.span_ni = self.span_ni
-        
-        b = a.blade_surface
-        
-        # distribute 200 points evenly along the airfoil sections
-        b.chord_ni = 200
-        for f in self.airfoils:
-            b.base_airfoils.append(np.loadtxt(f))
-        b.blend_var = np.array([0.25, 0.75])
-        
-        self.wingsurf = a
+            # Add a splined blade planform from the input data
+            a.add('pf_splines', SplinedBladePlanform(True))
+            a.driver.workflow.add('pf_splines')
+            a.pf_splines.nC = 3
+            a.pf_splines.pfIn = beam
+            a.pf_splines.configure_splines()
+            
+            a.create_passthrough('pf_splines.blade_length')
+            a.create_passthrough('pf_splines.span_ni')
+            
+            a.add('blade_surface', LoftedBladeSurface())
+            a.driver.workflow.add('blade_surface')
+            
+            a.connect('pf_splines.pfOut', 'blade_surface.pf')
+            a.connect('span_ni', 'blade_surface.span_ni')
+            
+            # load the planform file
+            a.span_ni = self.span_ni
+            
+            b = a.blade_surface
+            
+            # distribute 200 points evenly along the airfoil sections
+            b.chord_ni = 200
+            for f in self.airfoils:
+                b.base_airfoils.append(np.loadtxt(f))
+            b.blend_var = np.array([0.25, 0.75])
+            
+            self.wingsurf.append(a)
         
 
     def verify_input(self):
