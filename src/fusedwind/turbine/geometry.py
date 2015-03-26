@@ -666,7 +666,7 @@ class LoftedBladeSurface(Component):
             for n, ii in enumerate(self.rot_order):
                 mat = np.matrix(RotMat(rot_normals[ii], angles[ii]))
                 rotation_matrix = mat * rotation_matrix
-
+            
             # apply rotation
             x_rot[:, i, :] = dotXC(rotation_matrix, points, rot_center)
 

@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from mpl_toolkits.mplot3d import Axes3D
+
+from BISDEM.WingSE.wingsurface import WingSurface
+from BISDEM.lib.vartrees import WingPlanformVT
 
 from BISDEM.lib.plot import mechanimation2D, mechplot2D
 
@@ -9,6 +13,9 @@ from BISDEM.MechSE.motion import mech_motion
 
 from BISDEM.WingSE.init import wing_init
 from BISDEM.WingSE.motion import wing_motion
+
+from os.path import expanduser
+home = expanduser("~")
 
 """
 Example for how to define mechanism and wing and run and visualize the behavior for given conditions
@@ -20,7 +27,7 @@ Define mechanism
 """
 MechInit = mech_init()
 
-MechInit.fGx = MechInit.bGx = -16e-3
+MechInit.fGx = MechInit.bGx = -15e-3
 MechInit.fGy = MechInit.bGy = -70e-3
 MechInit.fRi = MechInit.bRi = 8.5e-3
 MechInit.fRo = MechInit.bRo = 24e-3
@@ -31,7 +38,7 @@ MechInit.fBO = MechInit.bBO = 45e-3
 MechInit.fAO = MechInit.bAO = 20e-3
 
 MechInit.fz = 0
-MechInit.bz = -65e-3
+MechInit.bz = -48.5e-3
 
 MechInit.run()      # Run defintion. Afterwards, mdef is filled.
 
@@ -44,12 +51,8 @@ MechMotion = mech_motion()
 MechMotion.mdef = MechInit.mdef
  
 # Define running parameters
-dt = 0.01
-f = 2.   #Hz
-T = 1. / f
-
-theta = np.linspace(0,2*np.pi, 200)
-phi = np.ones(len(theta)) * np.radians(0)
+theta = np.linspace(0, 2*np.pi, 200)
+phi = np.ones(len(theta)) * np.deg2rad(3.3)
  
 MechMotion.phi = phi
 MechMotion.theta = theta
@@ -72,6 +75,7 @@ WingInit.bz = MechInit.bz
 
 WingInit.run()
 
+
 """
 Calculate wing motion
 """
@@ -80,8 +84,64 @@ WingMotion = wing_motion()
 # Hand over definition and positions of mechanism
 WingMotion.wdef = WingInit.wdef
 WingMotion.mpos = MechMotion.mpos 
+WingMotion.n = 30
+WingMotion.dt = 0.001
 
 WingMotion.run()
 
-mechanimation2D(MechMotion.mpos.front,WingMotion.wpos.front, 20)
-mechplot2D(MechMotion.mpos,WingMotion.wpos,2)   
+#mechanimation2D(MechMotion.mpos.front,WingMotion.wpos.front, 20)
+#mechplot2D(MechMotion.mpos,WingMotion.wpos,2)   
+
+surface = WingSurface()
+surface.eqspar_geom = WingMotion.wpos.eqspar_geom
+planform = WingPlanformVT();
+planform.blade_length = .2;
+planform.chord = np.ones(30)
+planform.rthick =  np.ones(30)*0.05
+planform.p_le = np.zeros(30)
+surface.planform_in = [planform]*len(WingMotion.wpos.eqspar_geom);
+
+surface.airfoils = [home+'/git/BISDEM/data/ffaw3241.dat', home+'/git/BISDEM/data/ffaw3301.dat'];
+surface.span_ni = 30
+
+surface.run()
+
+# surf = surface.wingsurf[0]
+# b = surf.blade_surface
+# 
+# surf.run()
+# 
+# pf = surf.pf_splines.pfOut
+# 
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.set_aspect('equal')
+# ax.set_xlim(-0.1, 1.4)
+# ax.set_ylim(-0.5, 1.0)
+# ax.set_zlim(-0.5, 1.0)
+# ax.view_init(18, -133)
+# for i in range(b.span_ni):
+#     ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+# plt.savefig(home+'/result=.png')
+# plt.show()
+
+for j, surf in enumerate(surface.wingsurf):
+    print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
+    b = surf.blade_surface
+    surf.run()
+     
+    pf = surf.pf_splines.pfOut
+     
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_aspect('equal')
+    ax.set_xlim(-0.1, 1.4)
+    ax.set_ylim(-0.5, 1.0)
+    ax.set_zlim(-0.5, 1.0)
+    ax.view_init(18, -133)
+    for i in range(b.span_ni):
+        ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+    plt.savefig(home+'/results/%03d.png'%j)
+    plt.close()
+    
+print "Done"
