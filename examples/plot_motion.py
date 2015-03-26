@@ -96,8 +96,9 @@ surface = WingSurface()
 surface.eqspar_geom = WingMotion.wpos.eqspar_geom
 planform = WingPlanformVT();
 planform.blade_length = .2;
-planform.chord = np.ones(30)
-planform.rthick =  np.ones(30)*0.05
+planform.chord = np.ones(10)*0.22
+planform.chord = np.append(planform.chord, np.linspace(.220, .0860254, 20))
+planform.rthick =  np.ones(30)*0.16
 planform.p_le = np.zeros(30)
 surface.planform_in = [planform]*len(WingMotion.wpos.eqspar_geom);
 
@@ -106,42 +107,75 @@ surface.span_ni = 30
 
 surface.run()
 
-# surf = surface.wingsurf[0]
-# b = surf.blade_surface
-# 
-# surf.run()
-# 
-# pf = surf.pf_splines.pfOut
-# 
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
-# ax.set_aspect('equal')
-# ax.set_xlim(-0.1, 1.4)
-# ax.set_ylim(-0.5, 1.0)
-# ax.set_zlim(-0.5, 1.0)
-# ax.view_init(18, -133)
-# for i in range(b.span_ni):
-#     ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
-# plt.savefig(home+'/result=.png')
-# plt.show()
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.set_aspect('equal')
+ax.set_xlim(-0.1, 1.4)
+ax.set_ylim(-0.5, 1.0)
+ax.set_zlim(-0.5, 1.0)
+ax.view_init(18, -133)
 
-for j, surf in enumerate(surface.wingsurf):
-    print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
-    b = surf.blade_surface
-    surf.run()
-     
-    pf = surf.pf_splines.pfOut
-     
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_aspect('equal')
-    ax.set_xlim(-0.1, 1.4)
-    ax.set_ylim(-0.5, 1.0)
-    ax.set_zlim(-0.5, 1.0)
-    ax.view_init(18, -133)
-    for i in range(b.span_ni):
-        ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
-    plt.savefig(home+'/results/%03d.png'%j)
-    plt.close()
+# Initialize 
+lines = []
+blades = []
+for index in range(surface.wingsurf[0].blade_surface.span_ni):
+    lobj = ax.plot([],[],[],"r",lw=2)[0]
+    lines.append(lobj)
+
+def init():
     
+    for line in lines:
+        line.set_data([],[])
+        line.set_3d_properties([])
+        
+    for j, surf in enumerate(surface.wingsurf):
+        print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
+        b = surf.blade_surface
+        surf.run()
+        blades.append(b)
+    
+    print
+    print "Done initializing"
+    return lines, blades
+
+def animate(i):
+    b=None
+    if i>0 and i<199:
+        b = blades[i]
+    else:
+        return
+    
+    for lnum,line in enumerate(lines):
+        if lnum>=0 and lnum<30:
+            line.set_data(b.surfout.surface[:, lnum, 2], -b.surfout.surface[:, lnum, 0])
+            line.set_3d_properties(b.surfout.surface[:, lnum, 1])
+        
+            fig.canvas.draw()
+        else:
+            break
+    return lines
+
+
+# for j, surf in enumerate(surface.wingsurf):
+#     print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
+    
+surf = surface.wingsurf[0]
+
+
+b = surf.blade_surface
+surf.run()
+for i in range(b.span_ni):
+    ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+
+#plt.savefig(home+'/results/%03d.png'%j)
+
+plt.show()
+
+plt.close()
+
+# # Animation
+
+# anim = animation.FuncAnimation(fig, animate, init_func=init, frames=198, interval=1, blit=False)
+# anim.save(home+'/lorenz_attractor.mp4', fps=15, extra_args=['-vcodec', 'libx264'])
+
 print "Done"
