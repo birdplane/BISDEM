@@ -35,27 +35,28 @@ class BEM(Component):
 
     def execute(self):
 
-         Vi_1 = np.array([0,0,0])
+        Vi_1 = np.array([0,0,0])
          
-#         self.F_1 = bet(self.P_1,self.V0_1,Vi_1,self.Vflap_1,self.J_a,self.Twist,self.Pitch,self.Chord,self.PLE,self.Polar,self.rho,self.dt)
-#         meanF_1 = np.array([np.sum(self.F_1[:,:,0]),np.sum(self.F_1[:,:,1]),np.sum(self.F_1[:,:,2])])/ len(self.F_1)
-#         print mt(self.P_1,self.V0_1,meanF_1,self.rho)
+        self.F_1 = bet(self.P_1,self.V0_1,Vi_1,self.Vflap_1,self.J_a,self.Twist,self.Pitch,self.Chord,self.PLE,self.Polar,self.rho,self.dt)
+        
+#        meanF_1 = np.array([np.sum(self.F_1[:,:,0]),np.sum(self.F_1[:,:,1]),np.sum(self.F_1[:,:,2])])/ len(self.F_1)
+#        print mt(self.P_1,self.V0_1,meanF_1,self.rho)
 
-         while True:
-             
-             
-             self.F_1 = bet(self.P_1,self.V0_1,Vi_1,self.Vflap_1,self.J_a,self.Twist,self.Pitch,self.Chord,self.PLE,self.Polar,self.rho,self.dt)
-             meanF_1 = np.array([np.sum(self.F_1[:,:,0]),np.sum(self.F_1[:,:,1]),np.sum(self.F_1[:,:,2])])/ len(self.F_1)
-             
-             print 'induced velocity: %f' %np.linalg.norm(Vi_1)
-             print 'mean force magnitude: %f' %np.linalg.norm(meanF_1)
- 
-             Vi_1new = mt(self.P_1,self.V0_1,meanF_1,self.rho)
-              
-             if np.linalg.norm(Vi_1new-Vi_1)<0.0001:
-                 break
-              
-             Vi_1 = Vi_1new
+#         while True:
+#                 
+#                 
+#             self.F_1 = bet(self.P_1,self.V0_1,Vi_1,self.Vflap_1,self.J_a,self.Twist,self.Pitch,self.Chord,self.PLE,self.Polar,self.rho,self.dt)
+#             meanF_1 = np.array([np.sum(self.F_1[:,:,0]),np.sum(self.F_1[:,:,1]),np.sum(self.F_1[:,:,2])])/ len(self.F_1)
+#                 
+#             print 'induced velocity: %f' %Vi_1[0], Vi_1[1], Vi_1[2]
+#             print 'mean force magnitude: %f' %meanF_1[0],meanF_1[1],meanF_1[2]
+#     
+#             Vi_1new = mt(self.P_1,self.V0_1,meanF_1,self.rho)
+#                  
+#             if np.linalg.norm(Vi_1new-Vi_1)<0.0001:
+#                 break
+#                  
+#             Vi_1 = Vi_1new
         
     
     
@@ -87,24 +88,21 @@ def bet(P_1,V0_1,Vi_1,Vflap_1,J_a,Twist,Pitch,Chord,PLE,Polar,rho,dt):
     wy = np.zeros_like(Twist)
     S = np.zeros_like(Twist)
     
+    Vflap_1[np.abs(Vflap_1) < 1e-8] = 0
+    
     for i in range(len(P_1)):
         
         for j in range(len(P_1[i])):
             
             # Calculate wing element elevation angle
     
-            if j < J_a:
+            if j <= J_a:
                 
                 dz = P_1[i,J_a,2]
                 dy = P_1[i,J_a,1]
-                
+
                 Phi[i,j] = np.arctan(dz/dy)
                 
-                if i<len(P_1)-1:
-                    dz = P_1[i+1,J_a,2]
-                    dy = P_1[i+1,J_a,1]
-                    
-                    Phi[i+1,j] = np.arctan(dz/dy)
             else:
                 
                 dz = P_1[i,-1,2]-P_1[i,J_a+1,2]
@@ -112,21 +110,13 @@ def bet(P_1,V0_1,Vi_1,Vflap_1,J_a,Twist,Pitch,Chord,PLE,Polar,rho,dt):
                 
                 Phi[i,j] = np.arctan(dz/dy)
                 
-                if i<len(P_1)-1:
-                    dz = P_1[i+1,-1,2]-P_1[i+1,J_a+1,2]
-                    dy = P_1[i+1,-1,1]-P_1[i+1,J_a+1,1]
-                    Phi[i+1,j] = np.arctan(dz/dy)
-             
             # Calculate local flow velocity
-            V_4[i,j] = roty(-(Twist[i,j]+Pitch[j]), rotx(Phi[i,j],(V0_1 + Vi_1 + Vflap_1[i,j]))) 
-            if i<len(P_1)-1:
-                V_4[i+1,j] = roty(-(Twist[i+1,j]+Pitch[j]), rotx(Phi[i+1,j],(V0_1 + Vi_1 + Vflap_1[i+1,j])))
-            
+            V_4[i,j] = roty((Twist[i,j]+Pitch[j]), rotx(-Phi[i,j],(V0_1 + Vi_1 + Vflap_1[i,j]))) 
+            V_4[np.abs(V_4) < 1e-12] = 0
+
             # Calculate angle of attack
             aoa[i,j] = np.arctan(-V_4[i,j,2]/V_4[i,j,0])
-            if i<len(P_1)-1:
-                aoa[i+1,j] = np.arctan(-V_4[i+1,j,2]/V_4[i+1,j,0])
-            
+
             # Find cl,cd,cm from polars with linear interpolation
             cl[i,j] = np.interp(np.degrees(aoa[i,j]),Polar[j,0],Polar[j,1])
             cd[i,j] = np.interp(np.degrees(aoa[i,j]),Polar[j,0],Polar[j,2])
@@ -134,44 +124,51 @@ def bet(P_1,V0_1,Vi_1,Vflap_1,J_a,Twist,Pitch,Chord,PLE,Polar,rho,dt):
 
             # Calculate element width
             if j < len(P_1[i])-1:
-                w[j] = np.linalg.norm(P_1[0,j+1,:]-P_1[0,j,:])
                 wy[i,j] = P_1[i,j+1,1]-P_1[i,j,1]
             else:
-                w[j] = np.linalg.norm(P_1[0,j,:]-P_1[0,j-1,:])
                 wy[i,j] = P_1[i,j,1]-P_1[i,j-1,1]
     
             # Calculate element surface area
             S[i,j] = Chord[j] * wy[i,j]
             
-            # Calculate local flow velocity magnitude
+            # Calculate aerodynamic forces
             l[i,j] = 0.5 * rho * np.linalg.norm(V_4[i,j])**2 * S[i,j] * cl[i,j]
             d[i,j] = 0.5 * rho * np.linalg.norm(V_4[i,j])**2 * S[i,j] * cd[i,j]
             m[i,j] = 0.5 * rho * np.linalg.norm(V_4[i,j])**2 * S[i,j] * cm[i,j]
             
             # Force vector in Blade Element local axes
-            F_5[i,j] = np.array([d[i,j], 0, l[i,j]])
+            F_5[i,j] = np.array([-d[i,j], 0, l[i,j]])
                 
             # Force vector in Blade local axes
             F_4[i,j] = roty(aoa[i,j],F_5[i,j])
             
+    
+    
+    """
+    Add mass effect and rotate to stroke plane axes
+    """
+    for i in range(len(P_1)):
+         
+        for j in range(len(P_1[i])):
             # Add mass effects
             if i==0:
                 daoa[i,j] = (aoa[1,j]-aoa[0,j])/dt
                 dV_4[i,j] = (V_4[1,j]-V_4[0,j])/dt
- 
+    
             elif i < len(P_1)-1:
                 daoa[i,j] = (aoa[i+1,j]-aoa[i-1,j])/(2*dt)
                 dV_4[i,j] = (V_4[i+1,j]-V_4[i-1,j])/(2*dt)
+                 
             else:
                 daoa[i,j] = (aoa[i,j]-aoa[i-1,j])/dt
                 dV_4[i,j] = (V_4[i,j]-V_4[i-1,j])/dt
-                 
-                 
+                    
+ 
             F_4[i,j,0] = F_4[i,j,0] - 0.25 * rho * np.pi * Chord[j] * S[i,j] * V_4[i,j,2] * daoa[i,j]
             F_4[i,j,2] = F_4[i,j,2] + 0.25 * rho * np.pi * Chord[j] * S[i,j] * dV_4[i,j,2]
-            
+             
             # Tranform to Stroke Plane Axes
-            F_1[i,j] = rotx(-Phi[i,j],roty(-(Twist[i,j]+Pitch[j]),F_4[i,j]))
+            F_1[i,j] = rotx(Phi[i,j],roty(-(Twist[i,j]+Pitch[j]),F_4[i,j]))
 
     return F_1
             
@@ -192,7 +189,7 @@ def mt(P_1,V0_1,meanF_1,rho):
     idx_zmin = np.argmin(P_1[:,-1,2])
     
     Ad = np.linalg.norm(P_1[idx_zmax,-1,2]-P_1[idx_zmin,-1,2])*P_1[idx_ymax,-1,1]
-
+    print P_1[idx_zmax,-1,2]
     V0 = np.linalg.norm(V0_1)
     
     Vi_1new = np.zeros_like(V0_1,dtype=float)

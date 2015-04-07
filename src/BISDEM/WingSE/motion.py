@@ -163,8 +163,6 @@ class wing_motion(Component):
                 print "v_z ", v_z
                 print "rot_z ", beam.rot_z
             
-            #print beam.rot_z[20]
-            
             # beam speed
             if len(self.wpos.eqspar_geom)>0:
                 beam_previous = self.wpos.eqspar_geom[-1]
