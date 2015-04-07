@@ -37,7 +37,6 @@ MechInit.bz = -65e-3
 
 MechInit.run()      # Run defintion. Afterwards, mdef is filled.
 
-
 """
 Calculate mechanism motion
 """
@@ -47,7 +46,7 @@ MechMotion.mdef = MechInit.mdef
  
 # Define running parameters
 dt = 0.01
-f = 2.   #Hz
+f = 2   #Hz
 T = 1. / f
 
 theta = np.linspace(0,2*np.pi, T/dt)
@@ -82,6 +81,7 @@ WingMotion = wing_motion()
 # Hand over definition and positions of mechanism
 WingMotion.wdef = WingInit.wdef
 WingMotion.mpos = MechMotion.mpos 
+WingMotion.dt = dt
 
 WingMotion.run()
 
@@ -110,7 +110,6 @@ for i in range(len(theta)):
         P_1[i,j+J_a] = C + Wcd[j] * DC
 
 #print P_1[0,:,1][0]
-
 
 
 """
@@ -145,12 +144,12 @@ twist = np.ones((len(theta),Nele))*0.
 Define pitch
 positive pitch means higher aoa
 """
-pitch = np.ones(Nele)*np.radians(0)
+pitch = np.ones(Nele)*np.radians(5)
 
 """
 Define chord
 """
-chord = np.ones(Nele)*0.2
+chord = np.ones(Nele)*0.25
 
 """
 Define p_le
@@ -164,8 +163,8 @@ Naoa = 300
 caoa = np.linspace(-40, 40, Naoa)
 
 A= 1.6
-B= 1.135
-C= -1.05
+B= 0#1.135
+C= 0#-1.05
 
 cl = A * np.sin(2*np.radians(caoa))
 cd = B + C * np.cos(2*np.radians(caoa))
@@ -177,6 +176,7 @@ polar = np.zeros((Nele,4,Naoa))
 for i in range(Nele):
     
     polar[i] = elepolar
+    
 """
 Define free stream velocity
 """

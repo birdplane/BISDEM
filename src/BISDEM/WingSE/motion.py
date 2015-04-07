@@ -147,7 +147,6 @@ class wing_motion(Component):
             beam.rot_z = -np.rad2deg(np.arctan(v_y/v_z)) #np.sign(v[:,1])*np.rad2deg(np.arccos((v*v_z).sum(axis=1)/(v*v).sum(axis=1)**0.5))   # np.rad2deg(np.arctan((beam_pos.T[1]-beam_pos_back.T[1])/(beam_pos.T[2]-beam_pos_back.T[2])))
             beam.s = calculate_length(np.array([beam.x, beam.y, beam.z]).T)
             
-            print beam.rot_z[20]
             
             # beam speed
             if len(self.wpos.eqspar_geom)>0:
