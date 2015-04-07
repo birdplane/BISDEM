@@ -85,6 +85,7 @@ WingMotion = wing_motion()
 WingMotion.wdef = WingInit.wdef
 WingMotion.mpos = MechMotion.mpos 
 WingMotion.n = 30
+WingMotion.sweep = 15
 WingMotion.dt = 0.001
 
 WingMotion.run()
@@ -102,7 +103,7 @@ planform.rthick =  np.ones(30)*0.16
 planform.p_le = np.zeros(30)
 surface.planform_in = [planform]*len(WingMotion.wpos.eqspar_geom);
 
-surface.airfoils = [home+'/git/BISDEM/data/ffaw3241.dat', home+'/git/BISDEM/data/ffaw3301.dat'];
+surface.airfoils = [home+'/git/BISDEM/data/s8037.dat', home+'/git/BISDEM/data/s8037.dat'];
 surface.span_ni = 30
 
 surface.run()
@@ -133,6 +134,9 @@ def init():
         b = surf.blade_surface
         surf.run()
         blades.append(b)
+        print 'rotation root: ', surf.pf_splines.pfOut.rot_z[5]
+        print 'rotation top: ', surf.pf_splines.pfOut.rot_z[-1]
+        
     
     print
     print "Done initializing"
@@ -158,24 +162,25 @@ def animate(i):
 
 # for j, surf in enumerate(surface.wingsurf):
 #     print "\rCreating wing %d/%d" %(j, len(surface.wingsurf)),
-    
-surf = surface.wingsurf[0]
-
-
-b = surf.blade_surface
-surf.run()
-for i in range(b.span_ni):
-    ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
-
+#     
+#     # surf = surface.wingsurf[0]
+#     
+#     b = surf.blade_surface
+#     surf.run()
+#     for i in range(b.span_ni):
+#         ax.plot(b.surfout.surface[:, i, 2], -b.surfout.surface[:, i, 0], b.surfout.surface[:, i, 1])
+#     
+#     plt.close()
 #plt.savefig(home+'/results/%03d.png'%j)
 
-plt.show()
 
-plt.close()
+    
 
-# # Animation
+# Animation
 
-# anim = animation.FuncAnimation(fig, animate, init_func=init, frames=198, interval=1, blit=False)
+anim = animation.FuncAnimation(fig, animate, init_func=init, frames=198, interval=1, blit=False)
 # anim.save(home+'/lorenz_attractor.mp4', fps=15, extra_args=['-vcodec', 'libx264'])
+
+plt.show()
 
 print "Done"

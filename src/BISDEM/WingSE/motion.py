@@ -5,7 +5,7 @@ from openmdao.main.api import Component
 from openmdao.lib.datatypes.api import Float,VarTree, Int
 
 from BISDEM.lib.vartrees import WingDefVT, WingPosVT, MechPosVT, WingSpdVT, WingPhlVT
-from BISDEM.lib.geo import triangle
+from BISDEM.lib.geo import triangle, rot_axis
 
 from fusedwind.turbine.geometry_vt import BeamGeometryVT
 from fusedwind.lib.geom_tools import calculate_length
@@ -23,6 +23,7 @@ class wing_motion(Component):
     mpos = VarTree(MechPosVT(), iotype='in', desc='Mech position')
     dt = Float(iotype='in', desc='Timestep')
     n  = Int(iotype='in', desc='Number of sections to describe the wing')
+    sweep = Float(iotype='in', desc='Sweep angle in degree, taken from the hinge point, i.e. unswept root section')
     
     # Outputs
     wpos = VarTree(WingPosVT(), iotype='out', desc='Position of the points O, A, C, D, E for each time step')
@@ -64,9 +65,17 @@ class wing_motion(Component):
             
             E1 , E2 = triangle(A,spos.C,sdef.EC,sdef.AE,np.linalg.norm(spos.C[0:2]-A[0:2],axis=0))
             spos.E = E1
-                        
+        
             D1, D2 = triangle(spos.E,spos.C,sdef.CD,sdef.ED,sdef.EC)
-            spos.D = D1
+        
+            theta = np.radians(self.sweep)
+            D = []
+            for c, e, d in zip(spos.C.T, spos.E.T, D1.T):
+                axis = c-e
+                m = rot_axis(axis, theta)
+                D.append(np.dot(m, d))
+            
+            spos.D = np.vstack(D).T
 
     def createEquivalentBeam(self):
         """ 
@@ -96,16 +105,18 @@ class wing_motion(Component):
             beam_pos = np.array([[0.0, 0.0, 0.0]])
             for r in r_OC[1:]:
                 beam_pos = np.vstack((beam_pos, [ocf*r]))
-                beam_pos[-1][2] = self.wpos.front.O[2][0]
+                # beam_pos[-1][2] = self.wpos.front.O[2][0]
             for r in r_CD[1:]:
                 beam_pos = np.vstack((beam_pos, [beam_pos[len(r_OC)-1]+cdf*r]))
-                beam_pos[-1][2] = self.wpos.front.O[2][0]
+                # beam_pos[-1][2] = self.wpos.front.O[2][0]
             
             # put position into correct structure
             beam = BeamGeometryVT()
             beam.x = beam_pos.T[2]
             beam.y = beam_pos.T[1]
             beam.z = beam_pos.T[0]
+            
+            # print beam_pos.T[2]
             
             # beam twist
             beam_pos_back = np.array([[0.0, 0.0, self.wpos.back.O[2][0]]])
@@ -123,7 +134,7 @@ class wing_motion(Component):
             for r in r_CD[1:]:
                 beam_pos_back = np.vstack((beam_pos_back, [beam_pos_back[len(r_OC)-1]+cdb*r]))
                 # Assumption: no taper, no sweep
-                beam_pos_back[-1][2] = self.wpos.back.O[2][0]
+                # beam_pos_back[-1][2] = self.wpos.back.O[2][0]
                 #rot_x.append(np.rad2deg(np.arccos(np.dot(cdf, np.array([1, 0, 0]))/np.linalg.norm(cdf))))
                 z = np.vstack((z, [0, 0, 1]))
                 x = np.vstack((x, [cdf]))
@@ -147,7 +158,12 @@ class wing_motion(Component):
             beam.rot_z = -np.rad2deg(np.arctan(v_y/v_z)) #np.sign(v[:,1])*np.rad2deg(np.arccos((v*v_z).sum(axis=1)/(v*v).sum(axis=1)**0.5))   # np.rad2deg(np.arctan((beam_pos.T[1]-beam_pos_back.T[1])/(beam_pos.T[2]-beam_pos_back.T[2])))
             beam.s = calculate_length(np.array([beam.x, beam.y, beam.z]).T)
             
-            print beam.rot_z[20]
+            if (len(self.wpos.eqspar_geom) == 0):
+                print "v_y ", v_y
+                print "v_z ", v_z
+                print "rot_z ", beam.rot_z
+            
+            #print beam.rot_z[20]
             
             # beam speed
             if len(self.wpos.eqspar_geom)>0:
